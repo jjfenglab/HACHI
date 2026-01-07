@@ -1,0 +1,30 @@
+#!/usr/bin/env scons
+
+import os
+from os.path import join
+
+import SCons.Script as sc
+from nestly import Nest
+from nestly.scons import SConsWrap
+
+# Command line options
+
+sc.AddOption("--output", type="string", help="output folder", default="_output")
+
+env = sc.Environment(
+    ENV=os.environ,
+    output=sc.GetOption("output"),
+)
+
+sc.Export("env")
+
+env.SConsignFile()
+
+# flag = "exp_peds"
+# sc.SConscript(flag + "/sconscript", exports=["flag"])
+
+flag = "exp_tbi"
+sc.SConscript(flag + "/sconscript", exports=["flag"])
+
+flag = "exp_aki_final"
+sc.SConscript(flag + "/sconscript", exports=["flag"])
