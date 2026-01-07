@@ -1,0 +1,17 @@
+Here are clinical notes from an inpatient medical-surgical admission at a safety net hospital:
+"{note}"
+
+Please provide a detailed summary of this patient's hospital course with particular attention to factors that may have prolonged their length of stay beyond what would be typical for their diagnosis.
+
+Your summary should include:
+1. Brief overview of admission reason and primary diagnosis
+2. Timeline of key events during the hospitalization
+3. Any complications or setbacks that occurred
+4. Barriers to discharge (medical, social, or system-related)
+5. Delays in care delivery (tests, procedures, consultations)
+6. Social or placement issues affecting discharge planning
+7. Care coordination challenges
+
+Be specific about WHEN and WHY delays occurred based on the information in the notes. Use direct quotes or paraphrases from the notes when possible to support your observations.
+
+Focus only on information explicitly stated or clearly implied in the provided notes. Do not make assumptions about factors not mentioned. You do NOT need to provide a conclusion sentence to your summary.

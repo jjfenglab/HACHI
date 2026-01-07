@@ -1,0 +1,45 @@
+You are extracting specific factors from a hospital course summary that may influence length of stay. Your task is to identify ONLY factors that are explicitly mentioned in the provided summary.
+
+Here is a hospital course summary for a sepsis admission:
+"{note}"
+
+**YOUR TASK:**
+Read the summary carefully and extract factors that actually appear in THIS patient's course. Create concept phrases that could be used to identify similar factors in other patients.
+
+**CRITICAL INSTRUCTIONS:**
+1. Only extract factors that are EXPLICITLY described in the summary above
+2. Do NOT use pre-defined concepts unless they match what's in the summary
+3. Each concept should complete: "Does the note mention/describe ____?"
+4. Make concepts specific enough to be meaningful but general enough to apply to other patients
+5. For each concept, provide 2-3 alternative phrasings (3 words or less each)
+
+**HOW TO IDENTIFY CONCEPTS:**
+Look for:
+- Specific complications or findings mentioned
+- Actual delays or timing issues described
+- Real coordination problems encountered
+- Concrete barriers to discharge
+- Specific treatment challenges noted
+
+**EXTRACTION PROCESS:**
+1. First, identify the specific event/factor in the summary
+2. Then, generalize it into a concept that could apply to other patients
+3. Create 2-3 alternative phrasings
+
+**EXAMPLES OF THE EXTRACTION PROCESS:**
+(These are examples to show the method - do NOT use these unless they appear in your summary)
+
+If summary says: "Patient required BiPAP for 5 days due to persistent hypoxia"
+→ Extract: "non-invasive ventilation, BiPAP requirement, respiratory support"
+
+If summary says: "Discharge delayed when patient failed swallow evaluation"
+→ Extract: "swallow failure, dysphagia assessment, aspiration risk"
+
+If summary says: "Insurance denied SNF placement, requiring case management intervention"
+→ Extract: "placement denial, insurance barrier, SNF rejection"
+
+**OUTPUT FORMAT:**
+{"1": "<descriptor1, synonym1, generalization1>"}
+{"2": "<descriptor2, synonym2, generalization2>"}
+
+Remember: Extract ONLY what is actually in the provided summary. If the summary doesn't mention something, don't include it.

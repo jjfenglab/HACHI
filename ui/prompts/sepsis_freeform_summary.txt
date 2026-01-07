@@ -1,0 +1,72 @@
+You are tasked with creating a comprehensive summary of a patient's hospital course for a sepsis admission. Your summary will be used to extract factors that may influence length of stay.
+
+Here are clinical notes from the admission:
+"{note}"
+
+**YOUR TASK:**
+Write a detailed narrative summary that captures ALL clinically relevant events, decisions, and factors during this hospitalization. Focus on creating a rich, complete picture of the patient's hospital course that includes medical management, system processes, and coordination activities.
+
+**IMPORTANT CONTEXT ABOUT THE NOTES:**
+- Progress notes often contain duplicate information from day to day. Treat duplicated text as a single occurrence unless the clinical context clearly indicates repeated events.
+- Delays rarely appear explicitly. Instead, look for patterns like:
+  * "Awaiting" or "pending" status that persists across multiple notes
+  * Gaps between when something is ordered and when it's completed
+  * Repeated mentions of the same unfulfilled plan across several days
+  * "Continue to monitor" or similar language without progression
+
+**STRUCTURE YOUR SUMMARY USING THESE COMPONENTS:**
+
+**1. Presentation and Initial Management**
+- How the patient presented and sepsis was recognized
+- Initial severity, vital signs, and organ dysfunction
+- Early interventions (cultures, antibiotics, fluids, support measures)
+
+**2. Clinical Course and Evolution**
+- How the infection responded to treatment
+- Antibiotic adjustments and rationale
+- Complications or new issues that arose
+- Persistent problems or slow resolution
+- Include specific details: which organisms grew, which antibiotics were used, what doses
+
+**3. Procedures, Diagnostics, and Consultations**
+- All imaging, procedures, and their findings
+- Consultant involvement and their recommendations
+- Note timing patterns (e.g., "CT abdomen ordered on day 2, completed on day 4")
+- Source control interventions if performed
+
+**4. Care Coordination and System Factors**
+- Transfers between units or services
+- Coordination between teams
+- Resource availability issues (if evident from timing patterns)
+- Weekend or holiday effects on care processes
+
+**5. Recovery, Functional Status, and Discharge Planning**
+- Mobility and functional assessments
+- Discharge criteria and when met
+- Barriers encountered (medical, social, or system-based)
+- Final discharge plan including antibiotic duration, follow-up needs, DME, or placement
+
+**EXPERT-IDENTIFIED SEPSIS EVENTS (Common but not exhaustive):**
+Hospital sepsis experts have identified these as frequently important. Include these when present, but also capture any other relevant events:
+
+- Blood culture collection and results timing
+- Antibiotic selection, changes, and route transitions  
+- Source identification and control procedures
+- Organ dysfunction and support requirements
+- Clinical response indicators (fever curves, lab trends, hemodynamics)
+- ID or other specialty consultations
+- Mobility/PT assessments and progression
+- Discharge antibiotic plans and duration
+- DME needs and procurement process
+- Home health or facility placement activities
+- Insurance or authorization requirements
+
+**WRITING GUIDELINES:**
+- Within each section, write flowing narrative paragraphs (not bullet points)
+- Describe events factually and completely
+- When you identify timing patterns suggesting delays, describe them naturally (e.g., "MRI was ordered on hospital day 2 but completed on day 5")
+- Preserve specific medical terminology and details from the notes
+- If a section has minimal relevant information, keep it brief but include it for consistency
+- Connect related events across sections when appropriate
+
+Create a comprehensive narrative that captures the complete hospitalization story while maintaining consistent organization across different patients.

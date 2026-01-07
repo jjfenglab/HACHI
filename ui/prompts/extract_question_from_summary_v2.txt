@@ -1,0 +1,44 @@
+Here is a hospital course timeline:
+"{note}"
+
+Extract specific, observable factors from this timeline that may influence length of stay. Create concept questions that could apply across different patients and admissions.
+
+IMPORTANT INSTRUCTIONS:
+1. Each concept should complete: "Does the note mention/describe ____?"
+2. Focus on concrete, documentable factors - NOT judgments about appropriateness
+3. Include factors that could either extend OR appropriately manage length of stay
+4. Make concepts binary (clearly yes/no) and specific
+5. For each concept, provide 2-3 alternative phrasings (3 words or less each)
+
+DISTINGUISHING FACTOR TYPES:
+- Medical management factors (may or may not extend stay):
+  * Protocol delays (e.g., "post-procedure monitoring, observation protocol, required waiting")
+  * Clinical complications (e.g., "new infection, medication reaction, symptom recurrence")
+  * Treatment responses (e.g., "antibiotic failure, therapy intolerance, slow improvement")
+
+- System/process factors (often associated with extended stay):
+  * Resource availability (e.g., "imaging backlog, OR scheduling, equipment shortage")
+  * Coordination gaps (e.g., "consultant unavailable, service disagreement, handoff delay")
+  * Administrative delays (e.g., "authorization pending, insurance denial, documentation waiting")
+
+- Discharge factors:
+  * Medical readiness gaps (e.g., "clearance pending, stability concerns, medication titration")
+  * Placement barriers (e.g., "SNF waitlist, home setup, family availability")
+  * Social determinants (e.g., "housing insecurity, transportation barriers, caregiver absence")
+
+Output format:
+{"1": "<descriptor1, synonym1, generalization1>"}
+{"2": "<descriptor2, synonym2, generalization2>"}
+
+Examples:
+- Timeline states "Day 3-5: Awaiting MRI" -> "imaging queue, scan backlog, radiology delay"
+- Timeline states "72-hour antibiotic course completed" -> "treatment completion, antibiotic course, therapy duration"
+- Timeline states "Discharge delayed until wheelchair delivered" -> "equipment wait, DME delay, supply shortage"
+
+Guidelines for good concepts:
+- Specific: "insurance denial" NOT "insurance issues"
+- Observable: "missed appointments" NOT "poor compliance" 
+- Binary: "substance use" NOT "patient factors"
+- Actionable: "equipment unavailable" NOT "resource problems"
+
+Only extract factors explicitly mentioned in the timeline. Do not infer unstated factors.

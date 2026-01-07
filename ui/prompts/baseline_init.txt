@@ -1,0 +1,21 @@
+We are fitting a concept bottleneck model to predict hospital length of stay (LOS) for patients admitted to medical-surgical units at a safety net hospital. The goal is to come up with {num_meta_concepts} meta-concepts to extract from clinical notes that maximize the accuracy of the concept bottleneck model for predicting whether a patient will have a longer than average length of stay.
+
+The top words most associated with longer hospital stays were estimated using a simple logistic regression model with tf-idf features. Based on the top words, come up with {num_meta_concepts} meta-concepts. A meta-concept has to be defined in terms of a yes/no question, e.g. "Does the note mention this patient having housing insecurity?". Pick meta-concepts that are as specific as possible, without being too broad.
+
+Suggestions for generating candidate meta-concepts: Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc). Do not propose meta-concepts where you would expect over 95% agreement or disagreement with the {num_concepts_fixed} existing meta-concepts (e.g. "Does the note mention the patient having homelessness?" overlaps too much with "Does the note mention the patient having housing insecurity?").
+
+Words with top coefficients:
+
+{top_features_df}
+
+Answer with a list of {num_meta_concepts} JSONs, one per line:
+{<QUESTION 1>: <COMMA-SEPARATED WORDS THAT ARE CLOSE SYNONYMS OR ANTONYMS OF QUESTION 1>}
+{<QUESTION 2>: <COMMA-SEPARATED WORDS THAT ARE CLOSE SYNONYMS OR ANTONYMS OF QUESTION 2>}
+...
+{<QUESTION {num_meta_concepts}>: <COMMA-SEPARATED WORDS THAT ARE CLOSE SYNONYMS OR ANTONYMS OF QUESTION {num_meta_concepts}>}
+
+Example answer:
+{"Does the note mention the patient having housing insecurity?": "homeless, housing, shelter"}
+{"Does the note mention the patient requiring complex discharge planning?": "discharge planning, placement, SNF"}
+
+Final answer:

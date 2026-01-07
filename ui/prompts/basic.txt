@@ -1,0 +1,11 @@
+Here is a clinical note from an inpatient medical-surgical admission at a safety net hospital:
+"{note}"
+List characteristics that this patient has or characteristics of their condition/care that may increase or decrease their length of stay (LOS) in the following format. For each descriptor, list multiple descriptors that mean the same thing or are generalizations of the descriptor (i.e. likely to be seen in other patients as well). Descriptors, synonyms, and generalizations should be succinct and no more than three words. Include any factors related to clinical status, social issues, care coordination, or discharge planning that might impact LOS.
+Format:
+{"1": "<STRING_OF_DESCRIPTOR1_AND_SYNONYMS_AND_GENERALIZATIONS>"}
+{"2": "<STRING_OF_DESCRIPTOR2_AND_SYNONYMS_AND_GENERALIZATIONS>"}
+...
+Example:
+{"1": "Homeless, Housing insecurity, Unstable housing"}
+{"2": "Complex discharge, Placement issues, Discharge barriers"}
+{"3": "Severe infection, Sepsis, Critical illness"}

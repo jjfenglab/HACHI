@@ -1,0 +1,57 @@
+{
+  "dataset": {
+    "type": "csv",
+    "path": "data/my_dataset.csv",
+    "id_column": "encounter_id", 
+    "note_column": "note_text",
+    "metadata_columns": ["diagnosis", "age", "gender", "los_days"],
+    "column_types": {
+      "encounter_id": "INTEGER",
+      "note_text": "TEXT",
+      "diagnosis": "TEXT", 
+      "age": "INTEGER",
+      "gender": "TEXT",
+      "los_days": "REAL"
+    },
+    "row_index_column": "row_index"
+  },
+  "train_test_split": {
+    "enabled": true,
+    "split_file_path": "data/train_test_indices.csv",
+    "index_column": "idx", 
+    "partition_column": "partition",
+    "training_partition_name": "train",
+    "test_partition_name": "test"
+  },
+  "concepts": {
+    "extractions_path": "concepts/extractions.pkl",
+    "concepts_csv_path": "concepts/concepts.csv",
+    "enabled": true
+  },
+  "prompts": {
+    "prompts_directory": "prompts/",
+    "summary_prompts": ["hospital_course_summary.txt", "clinical_summary.txt"],
+    "extraction_prompts": ["extract_concepts.txt"]
+  },
+  "llm_config": {
+    "api_type": "openai",
+    "model": "gpt-4", 
+    "max_tokens": 4000,
+    "temperature": 0,
+    "require_env_vars": ["OPENAI_API_KEY"]
+  },
+  "ui": {
+    "title": "Generic Dataset Analysis",
+    "encounter_display_name": "Encounter",
+    "display_columns": ["diagnosis", "age", "los_days"],
+    "filterable_columns": ["diagnosis", "gender"], 
+    "searchable_columns": ["diagnosis", "note_text"],
+    "export_columns": ["encounter_id", "note_text", "diagnosis", "age", "gender"],
+    "column_display_names": {
+      "encounter_id": "Encounter ID",
+      "diagnosis": "Primary Diagnosis", 
+      "age": "Patient Age",
+      "los_days": "Length of Stay (days)"
+    }
+  }
+}

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.ui.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/github.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .note-container {
+            position: relative;
+        }
+        
+        .note-text {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            height: 400px;
+            min-height: 200px;
+            max-height: 800px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            user-select: text;
+            cursor: text;
+            resize: vertical;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            cursor: ns-resize;
+            background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.1));
+            border-bottom-left-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+        }
+        
+        .resize-handle:hover {
+            background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.2));
+        }
+        
+        .summary-text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 400px;
+            height: 400px;
+            resize: vertical;
+            overflow-y: auto;
+            background-color: #f0f9ff;
+            border: 1px solid #0284c7;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            user-select: text;
+            cursor: text;
+        }
+        
+        .annotatable-text {
+            position: relative;
+        }
+        
+        .annotatable-text.selecting {
+            cursor: crosshair;
+        }
+        
+        .text-selection {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 2px;
+            mix-blend-mode: multiply;
+        }
+        
+        .concept-highlight {
+            background-color: rgba(255, 235, 59, 0.4);
+            border: 1px solid #fbc02d;
+        }
+        
+        .concept-highlight-active {
+            background-color: rgba(255, 193, 7, 0.6);
+            border: 1px solid #ff8f00;
+        }
+        
+        .concept-colors {
+            /* Predefined colors for different concepts */
+        }
+        
+        .concept-0 { background-color: rgba(255, 235, 59, 0.4); border-color: #fbc02d; }
+        .concept-1 { background-color: rgba(76, 175, 80, 0.4); border-color: #4caf50; }
+        .concept-2 { background-color: rgba(33, 150, 243, 0.4); border-color: #2196f3; }
+        .concept-3 { background-color: rgba(255, 87, 34, 0.4); border-color: #ff5722; }
+        .concept-4 { background-color: rgba(156, 39, 176, 0.4); border-color: #9c27b0; }
+        .concept-5 { background-color: rgba(0, 188, 212, 0.4); border-color: #00bcd4; }
+        .concept-6 { background-color: rgba(255, 152, 0, 0.4); border-color: #ff9800; }
+        .concept-7 { background-color: rgba(96, 125, 139, 0.4); border-color: #607d8b; }
+        
+        .prompt-editor {
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .observation-row {
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .observation-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .observation-row.selected {
+            background-color: #e3f2fd;
+        }
+        
+        .observation-row .fw-bold {
+            font-size: 12px;
+        }
+        
+        .info-badge {
+            font-size: 10px !important;
+            margin-left: 2px;
+        }
+        
+        .observation-row .badge {
+            font-size: 9px;
+        }
+        
+        .observations-container {
+            height: calc(100vh - 200px);
+            min-height: 500px;
+            max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .observations-container .card-body {
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        .observations-list-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            min-height: 0;
+            max-height: 100%;
+        }
+        
+        .pagination-container {
+            flex-shrink: 0;
+            margin-top: 0.5rem;
+        }
+        
+        .section-title {
+            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
+            margin: 0 -1rem 1rem -1rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+        
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin: 1rem 0;
+        }
+        
+        .concept-card {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        
+        .concept-card.active {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+        
+        .concept-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .excerpt-item {
+            border-left: 3px solid #dee2e6;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+            font-size: 0.875rem;
+        }
+        
+        .excerpt-item.from-note {
+            border-left-color: #fbc02d;
+            background-color: #fffde7;
+        }
+        
+        .excerpt-item.from-summary {
+            border-left-color: #0284c7;
+            background-color: #f0f9ff;
+        }
+        
+        .excerpt-source {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .excerpt-text {
+            font-style: italic;
+            line-height: 1.4;
+        }
+        
+        .right-panel {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .nav-pills .nav-link {
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        
+        .selection-toolbar {
+            position: fixed;
+            z-index: 1000;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .selection-toolbar .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.25rem;
+        }
+        
+        /* Make dropdowns wider to show full concept names */
+        #conceptFilter, #conceptSelection {
+            min-width: 200px;
+        }
+        
+        /* Ensure text in summary is selectable */
+        .summary-text {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        /* Add resize indicator */
+        .summary-text::-webkit-resizer {
+            border: 2px solid #0284c7;
+            background: #f0f9ff;
+        }
+        
+        /* Better scrollbar styling */
+        .observations-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* Dynamic columns for metadata display */
+        .metadata-columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .metadata-item {
+            font-size: 0.875rem;
+            color: #6c757d;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .metadata-value {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        /* Make partition badges have white text */
+        .badge.bg-primary,
+        .badge.bg-info {
+            color: white !important;
+        }
+        
+        /* Assigned concepts display */
+        .assigned-concepts-container {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .assigned-concepts-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .assigned-concept-badge {
+            font-size: 0.8rem;
+            padding: 0.35rem 0.65rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Navigation Header -->
+        <header class="row bg-primary text-white py-3 mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-0">{{ config.ui.title }}</h1>
+                        <p class="mb-0">Concept Analysis & Validation Interface</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div id="healthStatus" class="small"></div>
+            </div>
+        </header>
+
+        <div class="row">
+            <!-- Left Panel: Observations List -->
+            <div class="col-md-2">
+                <div class="card observations-container">
+                    <div class="card-header">
+                        <h6 class="mb-0" id="observationsHeader">{{ config.ui.get('encounter_display_name', 'Observations') }}</h6>
+                    </div>
+                    <div class="card-body d-flex flex-column p-2">
+                        <!-- Search -->
+                        <div class="mb-2">
+                            <input type="text" id="searchInput" class="form-control form-control-sm" 
+                                   placeholder="Search {{ config.ui.get('encounter_display_name', 'observations').lower() }}...">
+                        </div>
+                        
+                        <!-- Partition Filter (if train/test split enabled) -->
+                        <div class="mb-2" id="partitionFilterContainer" style="display: none;">
+                            <select id="partitionFilter" class="form-select form-select-sm">
+                                <option value="all">All Partitions</option>
+                                <option value="train">Training Only</option>
+                                <option value="test">Test Only</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Concept Filter (if concepts enabled) -->
+                        <div class="mb-2" id="conceptFilterContainer" style="display: none;">
+                            <select id="conceptFilter" class="form-select form-select-sm" title="Filter by concept presence">
+                                <option value="">All Concepts</option>
+                            </select>
+                            <small class="text-muted">Training data only</small>
+                        </div>
+                        
+                        <!-- Observations List (Scrollable) -->
+                        <div class="observations-list-container">
+                            <div id="observationsList" class="loading">Loading observations...</div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="pagination" class="pagination-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Panel: Content Viewer -->
+            <div class="col-md-7">
+                <!-- Selected Observation Info -->
+                <div id="observationInfo" class="card mb-3" style="display: none;">
+                    <div class="card-body">
+                        <div class="section-title">Selected {{ config.ui.get('encounter_display_name', 'Observation') }}</div>
+                        <div id="observationMetadata" class="metadata-columns">
+                            <!-- Dynamic metadata will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note Viewer -->
+                <div id="noteViewer" class="card mb-3" style="display: none;">
+                    <div class="card-body">
+                        <div class="section-title d-flex justify-content-between align-items-center">
+                            <span id="noteColumnTitle">{{ config.dataset.get('note_column', 'Note').replace('_', ' ').title() }}</span>
+                            <div>
+                                <button id="clearNoteSelections" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-eraser"></i> Clear Selections
+                                </button>
+                            </div>
+                        </div>
+                        <div class="note-container">
+                            <div id="noteContent" class="note-text annotatable-text" data-source="note">
+                                Select an observation to view the content
+                            </div>
+                            <div class="resize-handle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Generator (if LLM enabled) -->
+                <div id="summaryGenerator" class="card mb-3" style="display: none;">
+                    <div class="card-body">
+                        <div class="section-title">Summary Generation</div>
+                        
+                        <!-- Prompt Selection -->
+                        <div class="mb-3">
+                            <label for="promptSelect" class="form-label">Select Summary Prompt:</label>
+                            <select id="promptSelect" class="form-select">
+                                <option value="">Loading prompts...</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Action Button -->
+                        <div class="mb-3">
+                            <button id="generateSummaryBtn" class="btn btn-primary" disabled>
+                                <i class="fas fa-play"></i> Generate Summary
+                            </button>
+                            <div id="summaryStatus" class="mt-2 small text-muted"></div>
+                        </div>
+                        
+                        <!-- Generated Summary -->
+                        <div id="summarySection" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>Generated Summary</strong>
+                                <button id="clearSummarySelections" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-eraser"></i> Clear Selections
+                                </button>
+                            </div>
+                            <div id="summaryContent" class="summary-text annotatable-text" data-source="summary">
+                                Summary will appear here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Concept Validation Tools -->
+            <div class="col-md-3">
+                <div class="card right-panel">
+                    <div class="card-body">
+                        <div class="section-title">Concept Validation</div>
+                        
+                        <!-- Assigned Concepts (if concepts enabled) -->
+                        <div id="assignedConceptsSection" class="mb-4" style="display: none;">
+                            <h6 class="mb-3">Assigned Concepts</h6>
+                            <div id="assignedConceptsList">
+                                <!-- Concept cards will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Current Selection Info -->
+                        <div id="currentSelectionSection" class="mb-4" style="display: none;">
+                            <h6 class="mb-3">Current Selection</h6>
+                            <div id="currentSelectionInfo" class="small text-muted">
+                                Select text to see options
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Excerpts -->
+                        <div id="selectedExcerptsSection" class="mb-4">
+                            <h6 class="mb-3">Selected Evidence</h6>
+                            <div id="selectedExcerptsList">
+                                <div class="text-muted text-center py-3">
+                                    No excerpts selected yet
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Export Options -->
+                        <div id="exportSection">
+                            <h6 class="mb-3">Export Options</h6>
+                            <div class="d-grid gap-2">
+                                <button id="exportObservationsBtn" class="btn btn-success">
+                                    <i class="fas fa-download"></i> Export Filtered Data
+                                </button>
+                                <button id="exportSelectedEncounterBtn" class="btn btn-success" disabled>
+                                    <i class="fas fa-file-medical"></i> Export Selected Encounter
+                                </button>
+                                <div class="dropdown">
+                                    <button id="exportAnnotationsBtn" class="btn btn-success dropdown-toggle" disabled data-bs-toggle="dropdown">
+                                        <i class="fas fa-download"></i> Export Annotations
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="app.exportAnnotations(true)">
+                                                <i class="fas fa-file-medical"></i> With Note Content
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="app.exportAnnotations(false)">
+                                                <i class="fas fa-chart-line"></i> Annotations Only
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <button id="clearAllAnnotationsBtn" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash"></i> Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selection Toolbar (Hidden by default) -->
+    <div id="selectionToolbar" class="selection-toolbar">
+        <div class="d-flex align-items-center">
+            <small class="me-2">Link to concept:</small>
+            <select id="conceptSelection" class="form-select form-select-sm me-2" style="width: auto;">
+                <option value="">Select concept...</option>
+            </select>
+            <button id="linkSelectionBtn" class="btn btn-primary btn-sm me-1">
+                <i class="fas fa-link"></i> Link
+            </button>
+            <button id="cancelSelectionBtn" class="btn btn-secondary btn-sm">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

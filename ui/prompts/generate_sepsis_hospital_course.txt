@@ -1,0 +1,46 @@
+Here are clinical notes from an inpatient sepsis admission at a safety net hospital:
+"{note}"
+
+Please create a comprehensive timeline of this patient's hospital course, documenting key events and their timing without making assumptions about their impact on length of stay.
+
+SEPSIS-SPECIFIC DOCUMENTATION GUIDANCE:
+Focus on capturing the complete sequence of sepsis management events, regardless of when they occur:
+
+**Initial Management Phase:**
+- Admission trigger and sepsis recognition
+- Timing of initial workup components (blood cultures, lactate, urine culture, other cultures)
+- Antibiotic initiation (type, route, timing relative to cultures)
+- Fluid resuscitation details
+- Initial severity indicators (vital signs, organ dysfunction)
+
+**Monitoring & Response Phase:**
+- Culture results and sensitivities (when received, what grew)
+- Lactate trends and repeat timing
+- Clinical response markers (fever curve, WBC trend, hemodynamic stability)
+- Antibiotic adjustments (narrowing, broadening, or changes)
+- Organ support needs (vasopressors, ventilation, dialysis)
+
+**Recovery & Transition Phase:**
+- Clinical improvement milestones
+- IV to PO antibiotic transition (if applicable)
+- Mobility and functional assessments
+- Telemetry monitoring periods
+- Complication development or resolution
+
+**Discharge Preparation Phase:**
+- Medical stability criteria met
+- Discharge antibiotic plan (duration, route)
+- DME needs identified and ordering process
+- Home health or facility placement activities
+- Medication reconciliation timing
+- Follow-up arrangements
+
+IMPORTANT GUIDELINES:
+- Document ALL events in chronological order, whether routine or unusual
+- Include specific dates/times when available (e.g., "Blood cultures drawn 14:30 on Day 1")
+- Note any documented waiting periods or process delays without interpretation
+- Capture parallel workflows (e.g., "While awaiting culture results, PT consulted on Day 2")
+- Include social and system factors that affect care coordination
+- Use direct quotes for important clinical decisions or barriers
+
+Document the actual sequence of events as they occurred for THIS patient, not an idealized pathway.

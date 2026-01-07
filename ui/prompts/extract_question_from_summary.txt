@@ -1,0 +1,32 @@
+Here is a hospital course summary:
+"{note}"
+
+Extract generalizable factors that contributed to this patient's extended length of stay by creating concept questions.
+
+IMPORTANT INSTRUCTIONS:
+1. Each concept should complete the question: "Does the note mention/describe ____?"
+2. Focus on specific, observable factors that could delay discharge or extend LOS
+3. Make concepts binary (clearly yes/no answerable) and specific enough to avoid ambiguity
+4. For each concept, provide 2-3 alternative phrasings that would identify the same underlying factor
+5. Each phrase must be 3 words or less
+
+Output format - for each factor create an entry like:
+{"1": "<STRING_OF_DESCRIPTOR1_AND_SYNONYMS_AND_GENERALIZATIONS>"}
+{"2": "<STRING_OF_DESCRIPTOR2_AND_SYNONYMS_AND_GENERALIZATIONS>"}
+...
+
+Examples of concept questions:
+- If summary mentions "waited 3 days for MRI" -> Extract: "imaging delays, delayed radiology, pending scans"
+  (Completes: "Does the note mention/describe imaging delays?")
+- If summary mentions "no beds at local SNF" -> Extract: "placement barriers, SNF unavailability, facility waitlist"
+  (Completes: "Does the note mention/describe placement barriers?")
+- If summary mentions "family disagreement about care" -> Extract: "family conflict, decisional discord, care disagreement"
+  (Completes: "Does the note mention/describe family conflict?")
+
+Guidelines for good concepts:
+- Specific: "insurance denial" NOT "insurance issues"
+- Observable: "missed appointments" NOT "poor compliance" 
+- Binary: "substance use" NOT "patient factors"
+- Actionable: "equipment unavailable" NOT "resource problems"
+
+Only include concepts clearly supported by the summary above.

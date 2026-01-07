@@ -1,0 +1,37 @@
+You are a clinical informatics expert who is skilled at extracting objective, factual information from detailed patient records. You are provided with a very detailed clinical note that documents time-stamped events (such as admissions, transfers, procedures, lab values, consult orders, imaging, and progress notes) throughout a patient's hospital stay.
+
+"{note}"
+
+Your task is to organize the note by first producing a brief, objective timeline of key events, and then extracting a bullet list of facts ("protoconcepts") that are relevant and may be used to explore how the patient's length of stay might vary across cases. Importantly, do not make any subjective judgments about whether these factors prolonged or shortened the stay—simply state the facts as described in the note.
+
+Please follow these steps to create your response:
+
+    Step 1: Construct a Timeline
+        Skim the entire clinical note and create an objective, chronological overview of the major factual events.
+        Include items such as:
+        • The time and unit of admission and transfers
+        • Key procedures (e.g., intubation, extubation) and any documented timing or duration
+        • Notable changes in the patient's condition (for example, documentation of sepsis, respiratory failure, delirium)
+        • Recorded orders and interventions (e.g., consults, imaging studies, antibiotic adjustments, nutrition changes)
+        Your timeline should simply recount what happened and when, without suggesting which events caused the LOS to increase or decrease.
+
+    Step 2: Extract Objective LOS-Related Facts ("Protoconcepts")
+        From the timeline and the detailed clinical note, extract a list of discrete, objective factual items that are likely related to hospital LOS.
+        For each fact, list a short title and the objective observation as stated in the notes.
+        For example, you might include:
+
+            Mechanical Ventilation - Documented intubation on [date/time] with extubation on [date/time].
+            Unit Transfers - Multiple transfers recorded (e.g., from the Emergency Department to the ICU, then to Med-Surg).
+
+        Do not add any evaluative language such as “this prolonged LOS” or “this shortened LOS.” Simply provide the clear factual details.
+
+    Step 3: Output Format and Focus
+        First provide your brief timeline summary in chronological order as a separate section.
+        Then, provide a bullet-point list of the objective LOS-related facts.
+        Format each bullet with a bold title and a brief factual description based solely on the information in the note.
+
+    Step 4: Use the Provided Clinical Note
+        Use the content from the attached or provided clinical note to inform your timeline and fact extraction.
+        Ensure that your output is a clear, objective statement of facts drawn directly from the note, without inferring causality on the LOS.
+
+Now, based on the instructions and using the provided clinical note, please generate a timeline summary and then list the LOS-related factual protoconcepts with objective descriptions as described.

@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Data Viewer</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Embedded CSS */
+        .note-container {
+            position: relative;
+        }
+        
+        .note-text {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            height: 400px;
+            min-height: 200px;
+            max-height: 800px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            user-select: text;
+            cursor: text;
+            resize: vertical;
+        }
+        
+        .summary-text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 300px;
+            height: 300px;
+            resize: vertical;
+            overflow-y: auto;
+            background-color: #f0f9ff;
+            border: 1px solid #0284c7;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            user-select: text;
+            cursor: text;
+        }
+        
+        /* Styling for markdown content in summary */
+        .summary-text h1, .summary-text h2, .summary-text h3 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .summary-text h1 { font-size: 1.4em; }
+        .summary-text h2 { font-size: 1.3em; }
+        .summary-text h3 { font-size: 1.2em; }
+        
+        .summary-text ul, .summary-text ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .summary-text li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .summary-text p {
+            margin-bottom: 0.75rem;
+        }
+        
+        .summary-text strong {
+            font-weight: 600;
+        }
+        
+        .summary-text em {
+            font-style: italic;
+        }
+        
+        .observation-row {
+            cursor: pointer;
+            font-size: 11px;
+            padding: 0.4rem;
+            border-bottom: 1px solid #e9ecef;
+            max-height: 80px;
+            overflow: hidden;
+        }
+        
+        .observation-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .observation-row.selected {
+            background-color: #e3f2fd;
+        }
+        
+        .observation-row .fw-bold {
+            font-size: 12px;
+        }
+        
+        .observation-row .badge {
+            font-size: 9px;
+        }
+        
+        .observations-container {
+            height: calc(100vh - 200px);
+            min-height: 500px;
+            max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .observations-list-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            min-height: 0;
+            max-height: 100%;
+        }
+        
+        .pagination-container {
+            flex-shrink: 0;
+            margin-top: 0.5rem;
+        }
+        
+        .section-title {
+            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
+            margin: 0 -1rem 1rem -1rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+        }
+        
+        .concept-card {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        
+        .concept-card.active {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+        
+        .excerpt-item {
+            border-left: 3px solid #dee2e6;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+            font-size: 0.875rem;
+        }
+        
+        .excerpt-item.from-note {
+            border-left-color: #fbc02d;
+            background-color: #fffde7;
+        }
+        
+        .excerpt-item.from-summary {
+            border-left-color: #0284c7;
+            background-color: #f0f9ff;
+        }
+        
+        .excerpt-source {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .excerpt-text {
+            font-style: italic;
+            line-height: 1.4;
+        }
+        
+        .right-panel {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .metadata-columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .metadata-item {
+            font-size: 0.875rem;
+            color: #6c757d;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .metadata-value {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .badge.bg-primary,
+        .badge.bg-info {
+            color: white !important;
+        }
+        
+        .concepts-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Loading screen styles */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
+            z-index: 9999;
+        }
+        
+        /* Overview tab styles - Optimized for Zoom presentations */
+        .method-flow-diagram {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .method-flow-diagram h5 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+        }
+        
+        .flow-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 3rem 0;
+            gap: 1rem;
+        }
+        
+        .flow-step {
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border: 3px solid #0d6efd;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 0.75rem;
+            max-width: 280px;
+            min-height: 120px;
+            text-align: left;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-number {
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .step-content h6 {
+            margin-bottom: 0.75rem;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        
+        .step-content p {
+            font-size: 1rem;
+            color: #495057;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .flow-arrow {
+            font-size: 2rem;
+            color: #0d6efd;
+            margin: 0 1rem;
+            font-weight: bold;
+        }
+        
+        /* Training summary - Zoom optimized */
+        .training-summary h6 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .training-summary .card {
+            border: 2px solid #dee2e6;
+            transition: box-shadow 0.15s ease-in-out;
+            margin-bottom: 1rem;
+        }
+        
+        .training-summary .card:hover {
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .training-summary .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .training-summary .card-body {
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        
+        .training-summary .card-body strong {
+            color: #2c3e50;
+        }
+        
+        .concepts-table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .concept-text {
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .prompt-text {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        /* Prompt sections - Zoom optimized */
+        .prompt-text-full {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin: 0;
+            overflow: visible;
+            max-height: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        .prompt-text-container {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        /* Prompt category headers */
+        .prompt-category h6 {
+            font-size: 1.3rem !important;
+            color: #0d6efd !important;
+            border-bottom: 3px solid #0d6efd !important;
+            padding-bottom: 0.75rem !important;
+            margin-bottom: 1rem !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Prompt cards */
+        .prompt-category .card {
+            border: 2px solid #dee2e6;
+            margin-bottom: 1rem;
+        }
+        
+        .prompt-category .card-header {
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid #dee2e6;
+            padding: 1rem;
+        }
+        
+        .prompt-category .card-header button {
+            font-size: 1.1rem !important;
+            color: #2c3e50 !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Chevron rotation for collapsed/expanded state */
+        .collapse:not(.show) + * .fas.fa-chevron-right,
+        [aria-expanded="false"] .fas.fa-chevron-right {
+            transform: rotate(0deg);
+            transition: transform 0.2s ease;
+        }
+        
+        .collapse.show + * .fas.fa-chevron-right,
+        [aria-expanded="true"] .fas.fa-chevron-right {
+            transform: rotate(90deg);
+            transition: transform 0.2s ease;
+        }
+        
+        /* Coefficient analysis section - Zoom optimized */
+        .alert-info {
+            font-size: 1.1rem !important;
+            line-height: 1.6 !important;
+            padding: 1.5rem !important;
+            border: 2px solid #0dcaf0 !important;
+        }
+        
+        .alert-info p {
+            margin-bottom: 1rem !important;
+        }
+        
+        .alert-info ul {
+            margin-bottom: 0 !important;
+        }
+        
+        .alert-info li {
+            margin-bottom: 0.5rem !important;
+            font-size: 1.05rem !important;
+        }
+        
+        /* Model coefficient cards */
+        .card h6 {
+            font-size: 1.2rem !important;
+            font-weight: 600 !important;
+            color: #2c3e50 !important;
+        }
+        
+        .card .text-muted {
+            font-size: 1rem !important;
+        }
+        
+        .table-sm {
+            font-size: 0.95rem !important;
+        }
+        
+        .table-sm th {
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            color: #ffffff !important;
+            padding: 0.75rem 0.5rem !important;
+        }
+        
+        .table-sm td {
+            padding: 0.6rem 0.5rem !important;
+        }
+        
+        /* Section headers */
+        h5 {
+            font-size: 1.75rem !important;
+            color: #2c3e50 !important;
+            font-weight: 600 !important;
+            margin-bottom: 1.5rem !important;
+        }
+        
+        /* Scrollbar styling */
+        .observations-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .observations-list-container::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* Dendrogram styling */
+        .dendrogram-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+        
+        .dendrogram-container svg {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+        }
+        
+        .dendrogram-link {
+            fill: none;
+            stroke: #555;
+            stroke-width: 1.5px;
+        }
+        
+        .dendrogram-node {
+            font-size: 10px;
+        }
+        
+        .dendrogram-leaf {
+            font-size: 9px;
+            fill: #333;
+        }
+        
+        .expandable {
+            cursor: pointer;
+        }
+        
+        .expandable:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        .concept-detail-row {
+            background-color: #f8f9fa;
+        }
+        
+        .expand-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        .sortable {
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .sortable:hover {
+            background-color: rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        /* Custom model badge colors */
+        .model-1-badge {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        
+        .model-2-badge {
+            background-color: #198754 !important;
+            color: white !important;
+        }
+        
+        .model-3-badge {
+            background-color: #fd7e14 !important;
+            color: white !important;
+        }
+        
+        /* Enhanced table responsiveness */
+        .concepts-table-full {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        
+        .concepts-table-full table {
+            font-size: 0.9rem;
+        }
+        
+        .concepts-table-full .concept-text {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        
+        /* Sort indicators */
+        .sortable::after {
+            content: '';
+            opacity: 0.5;
+            margin-left: 0.5rem;
+        }
+        
+        /* Dendrogram full width improvements */
+        .dendrogram-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        .dendrogram-container svg {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+            width: 100%;
+            height: auto;
+        }
+
+        /* Enhanced feedback presentation styles */
+        .feedback-opportunities {
+            margin: 2rem 0;
+        }
+
+        .feedback-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #0d6efd;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback-icon {
+            position: absolute;
+            top: -15px;
+            left: 30px;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .feedback-section h5 {
+            color: #0d6efd !important;
+            font-size: 1.4rem !important;
+            margin-bottom: 1rem !important;
+            font-weight: 700 !important;
+        }
+
+        .feedback-what {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .feedback-how {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0dcaf0;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .feedback-example {
+            background-color: #d4edda;
+            border-left: 4px solid #198754;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+            font-style: italic;
+        }
+
+        /* Enhanced flow diagram for presentation */
+        .enhanced-flow-diagram {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .enhanced-flow-diagram h3 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 3rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .binary-emphasis {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .binary-emphasis h4 {
+            color: #856404;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .binary-emphasis p {
+            font-size: 1.2rem;
+            color: #856404;
+            margin: 0;
+        }
+
+        .concept-examples {
+            margin: 2rem 0;
+        }
+
+        .example-transformation {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .before, .after {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .before {
+            background-color: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #721c24;
+        }
+
+        .after {
+            background-color: #d4edda;
+            border: 1px solid #198754;
+            color: #0f5132;
+        }
+
+        .arrow-transform {
+            font-size: 1.5rem;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+
+        /* Enhanced step styling with feedback indicators */
+        .flow-step-enhanced {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border: 3px solid #0d6efd;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 0.75rem;
+            max-width: 300px;
+            min-height: 140px;
+            text-align: left;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .flow-step-enhanced:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .flow-step-enhanced.has-feedback {
+            border-color: #ffc107;
+            box-shadow: 0 6px 12px rgba(255, 193, 7, 0.3);
+        }
+
+        .feedback-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #ffc107;
+            color: #856404;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Presentation navigation */
+        .presentation-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .presentation-mode .presentation-controls {
+            display: block;
+        }
+
+        .presentation-nav {
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .presentation-nav button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .presentation-nav button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Collapsible sections for presentation flow */
+        .presentation-section {
+            margin: 2rem 0;
+        }
+
+        .section-header {
+            background-color: #e9ecef;
+            padding: 1rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            border-bottom: 2px solid #0d6efd;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .section-header:hover {
+            background-color: #dee2e6;
+        }
+
+        .section-header h4 {
+            margin: 0;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .section-content {
+            border: 2px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.5rem 0.5rem;
+            padding: 2rem;
+            background-color: white;
+        }
+
+        /* Tooltip enhancements */
+        .tooltip-enhanced {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dotted #0d6efd;
+        }
+
+        .tooltip-enhanced:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main content container -->
+    <div id="mainContent"></div>
+    
+    <!-- Main interface template (hidden, used by JavaScript) -->
+    <script type="text/template" id="mainInterfaceTemplate">
+        <div class="container-fluid">
+            <!-- Navigation Header -->
+            <header class="row bg-primary text-white py-3 mb-4">
+                <div class="col">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 mb-0" id="appTitle">Clinical Data Viewer</h1>
+                            <p class="mb-0">Concept Analysis Interface</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div id="healthStatus" class="small"></div>
+                </div>
+            </header>
+
+            <!-- Main Tab Navigation -->
+            <div class="row mb-3">
+                <div class="col">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#encounters-tab" type="button" role="tab">
+                                <i class="fas fa-file-medical"></i> Encounters
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#overview-tab" type="button" role="tab">
+                                <i class="fas fa-chart-line"></i> Method Overview
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Encounters Tab -->
+                <div class="tab-pane fade show active" id="encounters-tab" role="tabpanel">
+                    <div class="row">
+                        <!-- Left Panel: Observations List -->
+                        <div class="col-md-2">
+                    <div class="card observations-container">
+                        <div class="card-header">
+                            <h6 class="mb-0" id="observationsHeader">Observations</h6>
+                        </div>
+                        <div class="card-body d-flex flex-column p-2">
+                            <!-- Search -->
+                            <div class="mb-2">
+                                <input type="text" id="searchInput" class="form-control form-control-sm" 
+                                       placeholder="Search...">
+                            </div>
+                            
+                            <!-- Partition Filter -->
+                            <div class="mb-2" id="partitionFilterContainer">
+                                <select id="partitionFilter" class="form-select form-select-sm">
+                                    <option value="all">All Partitions</option>
+                                    <option value="train">Training Only</option>
+                                    <option value="test">Test Only</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Concept Filter -->
+                            <div class="mb-2" id="conceptFilterContainer" style="display: none;">
+                                <select id="conceptFilter" class="form-select form-select-sm">
+                                    <option value="">All Concepts</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Observations List -->
+                            <div class="observations-list-container">
+                                <div id="observationsList" class="loading">
+                                    <div class="text-center p-3">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <div class="mt-2">Loading observations...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div id="pagination" class="pagination-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Panel: Content Viewer -->
+                <div class="col-md-7">
+                    <!-- Selected Observation Info -->
+                    <div id="observationInfo" class="card mb-3" style="display: none;">
+                        <div class="card-body">
+                            <div class="section-title">Selected Observation</div>
+                            <div id="observationMetadata" class="metadata-columns"></div>
+                        </div>
+                    </div>
+
+                    <!-- Note Viewer -->
+                    <div id="noteViewer" class="card mb-3" style="display: none;">
+                        <div class="card-body">
+                            <div class="section-title d-flex justify-content-between align-items-center">
+                                <span>Clinical Note</span>
+                                <button id="clearNoteSelections" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-eraser"></i> Clear Selections
+                                </button>
+                            </div>
+                            <div class="note-container">
+                                <div id="noteContent" class="note-text">
+                                    Select an observation to view the content
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div id="summarySection" class="card mb-3" style="display: none;">
+                        <div class="card-body">
+                            <div class="section-title d-flex justify-content-between align-items-center">
+                                <span>Hospital Course Summary</span>
+                                <button id="clearSummarySelections" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-eraser"></i> Clear Selections
+                                </button>
+                            </div>
+                            <div id="summaryContent" class="summary-text">
+                                Summary will appear here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Concept Validation Tools -->
+                <div class="col-md-3">
+                    <div class="card right-panel">
+                        <div class="card-body">
+                            <div class="section-title">Analysis Tools</div>
+                            
+                            <!-- Assigned Concepts -->
+                            <div id="assignedConceptsSection" class="mb-4" style="display: none;">
+                                <h6 class="mb-3">Assigned Concepts</h6>
+                                <div id="assignedConceptsList">
+                                    <!-- Tabs will be created dynamically -->
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Excerpts -->
+                            <div id="selectedExcerptsSection" class="mb-4">
+                                <h6 class="mb-3">Selected Evidence</h6>
+                                <div id="selectedExcerptsList">
+                                    <div class="text-muted text-center py-3">
+                                        No excerpts selected yet
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Export Options -->
+                            <div id="exportSection">
+                                <h6 class="mb-3">Export Options</h6>
+                                <div class="d-grid gap-2">
+                                    <button id="exportObservationsBtn" class="btn btn-success btn-sm">
+                                        <i class="fas fa-download"></i> Export Filtered Data
+                                    </button>
+                                    <button id="exportSelectedEncounterBtn" class="btn btn-success btn-sm" disabled>
+                                        <i class="fas fa-file-medical"></i> Export Selected
+                                    </button>
+                                    <div class="dropdown">
+                                        <button id="exportAnnotationsBtn" class="btn btn-success btn-sm dropdown-toggle" 
+                                                disabled data-bs-toggle="dropdown">
+                                            <i class="fas fa-download"></i> Export Annotations
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="app.exportAnnotations(true); return false;">
+                                                    <i class="fas fa-file-medical"></i> With Note Content
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="app.exportAnnotations(false); return false;">
+                                                    <i class="fas fa-chart-line"></i> Annotations Only
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <button id="clearAllAnnotationsBtn" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i> Clear All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                </div>
+
+                <!-- Overview Tab -->
+                <div class="tab-pane fade" id="overview-tab" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <!-- Method Overview Section -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div id="methodOverviewContent">
+                                        <!-- Enhanced method flow diagram will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Example Summaries Section -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div id="exampleSummariesContent">
+                                        <!-- Example summaries will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Generated Binary Concepts Section -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div id="generatedConceptsContent">
+                                        <!-- Generated concepts will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Feedback Opportunities Section -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div id="feedbackOpportunitiesContent">
+                                        <!-- Feedback opportunities will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <!-- Prompts Section -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div id="promptsContent">
+                                        <!-- Enhanced prompts with feedback integration points will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Presentation Controls -->
+                    <div class="presentation-controls">
+                        <div class="presentation-nav">
+                            <button onclick="app.previousSection()" title="Previous Section">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="presentationProgress" style="color: white; font-size: 0.9rem;">1/5</span>
+                            <button onclick="app.nextSection()" title="Next Section">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button onclick="app.togglePresentationMode()" title="Toggle Presentation Mode" style="margin-left: 1rem;">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
+    <!-- External dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Placeholder for standalone.js content -->
+    <script>
+        // STANDALONE_JS_PLACEHOLDER
+    </script>
+</body>
+</html>

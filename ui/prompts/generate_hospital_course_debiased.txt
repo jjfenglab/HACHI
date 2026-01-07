@@ -1,0 +1,24 @@
+Here are clinical notes from an inpatient medical-surgical admission at a safety net hospital:
+"{note}"
+
+Please create a comprehensive timeline of this patient's hospital course, documenting key events and their timing without making assumptions about their impact on length of stay.
+
+Your timeline should objectively capture:
+1. Admission reason, primary diagnosis, and expected treatment course
+2. Chronological sequence of major clinical events, procedures, and consultations
+3. Any documented delays, gaps, or waiting periods (with specific dates/durations when available)
+4. Discharge planning activities and their timing
+5. Social, placement, or coordination factors mentioned in the notes
+
+IMPORTANT GUIDELINES:
+- Document events neutrally - do not assume they extended or shortened the stay
+- Include both routine care events AND any deviations from typical workflow
+- Note specific timeframes: "MRI ordered Day 2, completed Day 5" rather than "MRI was delayed"
+- Use direct quotes or close paraphrases from the notes
+- Distinguish between:
+  * Expected waiting periods (e.g., "24-hour observation post-tPA per protocol")
+  * Unexplained gaps (e.g., "Progress notes Days 3-5 state 'awaiting MRI'")
+  * Medical necessities (e.g., "Antibiotics extended due to persistent fever")
+  * Non-medical delays (e.g., "Medically cleared Day 7, discharged Day 10")
+
+Focus only on information explicitly stated in the notes. Do not interpret whether events were appropriate or problematic - simply document what occurred and when.
