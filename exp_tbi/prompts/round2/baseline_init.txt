@@ -1,0 +1,92 @@
+We are fitting a concept bottleneck model to predict traumatic brain injury (TBI) for pediatric patients admitted to emergency room. The goal is to come up with a few meta-concepts that clinicians can use to easily risk-stratify patients for whether they are at high risk of being diagnosed with TBI. As training data, we are using clinical notes to retrospectively extract patient characteristics. A meta-concept has to be defined in terms of a yes/no question of the form "Does the note mention this patient having...?". Pick meta-concepts that are as specific as possible, without being too broad.
+
+Our team was previously considering the following set of concepts for the CBM:
+<question_list>
+Does the note mention the patient experiencing a loss of consciousness?
+Does the note mention the patient having a Glasgow Coma Scale score of 15?
+Does the note mention the patient experiencing a headache?
+Does the note mention the patient having normal cognition?
+Does the note mention the patient being seizure-free?
+Does the note mention the patient having a seizure?
+Does the note mention the patient having any neurological symptoms?
+Does the note mention the patient experiencing a cranial impact?
+Does the note mention the patient having a fall incident?
+Does the note mention the patient having a history of head trauma?
+Does the note mention the patient having tachycardia?
+Does the note mention the patient having no vomiting?
+</question_list>
+
+Clinical experts gave the following feedback to our concepts:
+<feedback>
+Rather than using concepts that depend on the status of the patient having neurological assessments, propose concepts that are characteristics of the patient themself.
+
+Some concepts like Glasgow Coma Scale score only make sense if a patient is at least 2 years old, or have different interpretations if the patient is above or below 2 years old. For such questions, write them as a conjunction, e.g. "Does the note mention the patient having a Glasgow Coma Scale score of 15 and being at least 2 years old?"
+
+Consider adding questions related to whether a patient has a hematoma and its location on the head.
+
+Concepts they particularly liked or suggested including:
+Does the note mention the patient experiencing loss of consciousness?
+Does the note mention the patient having a cognitive delay?
+Does the note mention the patient having a history of head trauma?
+Does the note mention the patient having vomiting or nausea?
+</feedback>
+
+We also conducted a data-driven analysis of the top words most associated with TBI as estimated using a logistic regression model with tf-idf features.
+Words with top coefficients:
+
+{top_features_df}
+
+YOUR TASK: 
+Propose {max_meta_concepts} candidate meta-concepts for a CBM. Do this by revising the original list of concepts, incorporating expert feedback, and incorporating the results from the data-driven analyses. You can merge, revise, or add new questions. Systematically review the feedback and the tf-idf top words list. Prioritize concepts that appear in the tf-idf results and align with the feedback guidance.
+
+Suggestions for generating candidate meta-concepts: 
+Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc).
+Rather than using concepts that depend on the status of the patient having neurological assessments, propose concepts that are characteristics of the patient themself.
+Some concepts like Glasgow Coma Scale score only make sense if a patient is at least 2 years old, or have different interpretations if the patient is above or below an 2 years old. For such questions, write them as a conjunction, e.g. "Does the note mention the patient having a Glasgow Coma Scale score of 15 and being at least 2 years old?"
+Concepts that clinical experts have suggested include those relating to loss of consciousness, cognitive delays, history of traumatic brain injury, vomiting, headaches, hematoma characteristics
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the model concepts (from most to least predictive).”,
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    {
+      "concept": "<QUESTION 2>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    ...
+    {
+      "concept": "<QUESTION {max_meta_concepts}>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    }
+  ]
+}
+
+Example answer:
+{
+  "reasoning": "Step-by-step reasoning through the residual model concepts and feedback",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient experiencing head trauma?",
+      "words": ["head injury", "skull trauma", "cranial damage"]
+    },
+    {
+      "concept": "Does the note mention the patient experiencing loss of consciousness?",
+      "words": ["LOC", "fainting", "unresponsive", "syncope"]
+    },
+    {
+      "concept": "Does the note mention the patient having a cognitive delay?",
+      "words": ["cognitive impairment", "intellectual disability", "developmental delay"]
+    },
+    {
+      "concept": "Does the note mention the patient having altered mental status?",
+      "words": ["mental status changes", "altered level of consciousness", "confusion", "disorientation", ]
+    }
+    ]
+}
+
+
+Final answer:

@@ -1,0 +1,656 @@
+import os
+from os.path import join as path_join
+
+from dotenv import load_dotenv
+from nestly import Nest
+from nestly.scons import SConsWrap
+from SCons.Script import Import
+
+load_dotenv()
+
+
+# For SCons - Import env from parent
+Import("env")
+localenv = env.Clone()
+
+# Cache configuration
+CACHE_FILE = "aki_cache.db"
+
+# Set up state
+nest = SConsWrap(Nest(), localenv["output"], alias_environment=localenv)
+
+# AKI data source
+AKI_TABULAR_DATA = "exp_aki/data/preop_data_commit_7d16b8f.csv"
+AKI_NOTE_DATA = "exp_aki/data/preop_data_suppl_note_commit_7d16b8f.csv"
+
+NUM_EPOCHS = 1
+NUM_GREEDY_EPOCHS = 1
+
+# USING VERSA MODELS
+LLM_MODELS = [
+    "gpt-4o-2024-08-06",
+]
+
+LLM_DICT = {
+    "gpt-4o-2024-08-06": {
+        "api": True,  # using API
+        "batch_size": 20,
+        "max_extract_length": None,
+        "max_binary_extract_length": 10000,
+        "max_new_tokens": 15000,
+        "num_top_resid_words": 40,
+        "llm_iter_model": "gpt-4o",
+    },
+}
+
+# these prompts mention the outcome we are predicting
+# Round 1: Outcome aware
+PROMPTS_WITH_AKI = {
+  "concept_prompts": {
+      "baseline_init": "exp_aki_final/prompts/with_aki/baseline_init.txt",
+      "probabilistic": "exp_aki_final/prompts/with_aki/concept_questions_probabilistic.txt",
+  },
+  "iter_prompts": "exp_aki_final/prompts/with_aki/bayesian_iter.txt",
+  "aki_keyphrases": "exp_aki_final/prompts/with_aki/aki_descriptors.txt"
+}
+
+# Round 1: Outcome masked
+# these prompts do not mention the outcome we are predicting
+PROMPTS_WITHOUT_AKI = {
+  "concept_prompts": {
+      "baseline_init": "exp_aki_final/prompts/without_aki/baseline_init.txt",
+      "probabilistic": "exp_aki_final/prompts/without_aki/concept_questions_probabilistic.txt",
+  },
+  "iter_prompts": "exp_aki_final/prompts/without_aki/bayesian_iter.txt",
+  "aki_keyphrases": "exp_aki_final/prompts/without_aki/aki_descriptors.txt"
+}
+
+# Round 2: Outcome clinical feedback
+# these prompts include feedback from the clinician
+PROMPTS_ROUND2 = {
+  "concept_prompts": {
+      "baseline_init": "exp_aki_final/prompts/round2/baseline_init.txt",
+      "probabilistic": "exp_aki_final/prompts/round2/concept_questions_probabilistic.txt",
+  },
+  "iter_prompts": "exp_aki_final/prompts/round2/bayesian_iter.txt",
+  "aki_keyphrases": "exp_aki_final/prompts/round2/aki_descriptors.txt"
+}
+
+# Round 3: Increase specificity for annotation
+PROMPTS_ROUND3 = {
+  "concept_prompts": {
+      "baseline_init": "exp_aki_final/prompts/round3/baseline_init.txt",
+      "probabilistic": "exp_aki_final/prompts/round3/concept_questions_probabilistic.txt",
+  },
+  "iter_prompts": "exp_aki_final/prompts/round3/bayesian_iter.txt",
+  "aki_keyphrases": "exp_aki_final/prompts/round3/aki_descriptors.txt",
+  "do_coef_check": True,
+}
+
+PROMPT_LIST = [
+    # "with_aki",
+    # "round2",
+    "round3"
+]
+PROMPT_DICT = {
+    'with_aki': PROMPTS_WITH_AKI,
+    'round2': PROMPTS_ROUND2,
+    'round3': PROMPTS_ROUND3,
+}
+
+nest.add("seed", [
+    # 0, # any surgical service
+    1 # general surgery only
+    ], label_func=lambda c: "seed_%d" % c)
+nest.add("max_obs", [
+    1600,
+    ], label_func=lambda c: "max_obs_%d" % c)
+
+@nest.add_target_with_env(localenv)
+def make_notes_data(env, outdir, c):
+    cmd = [
+        "python scripts/assemble_aki.py",
+        "--max-obs",
+        c["max_obs"],
+        "--seed",
+        c["seed"],
+        "--tabular-dataset-file",
+        AKI_TABULAR_DATA,
+        "--note-dataset-file",
+        AKI_NOTE_DATA,
+        "--out-csv ${TARGETS[0]}",
+        "--log ${TARGETS[1]}",
+    ]
+
+    targets = [path_join(outdir, "notes.csv"), path_join(outdir, "log_load_aki.txt")]
+
+    return env.Command(targets, [], " ".join(map(str, cmd)))
+
+nest.add(
+    "replicate_seed",
+    [
+        1,
+    ],
+    label_func=lambda c: "replicate_seed_%d" % c,
+)
+
+nest.add_aggregate("train_test_split_agg", list)
+nest.add_aggregate("prompt_model_dict", dict)
+nest.add("test_frac", [0.5], label_func=lambda c: "test_%.2f" % c)
+
+@nest.add_target_with_env(localenv)
+def train_test_split(env, outdir, c):
+    cmd = [
+        "python scripts/train_test_split.py",
+        "--seed",
+        c["replicate_seed"] + 1,
+        "--data-csv ${SOURCES[0]}",
+        "--test-frac",
+        c["test_frac"],
+        "--indices-csv ${TARGETS[0]}",
+    ]
+
+    sources = c["make_notes_data"]
+    targets = [
+        path_join(outdir, "train_test_indices.csv"),
+    ]
+    c["train_test_split_agg"].append(targets[0])
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+nest.add("llm_model", LLM_MODELS)
+nest.add_aggregate("llm_concept_extract", str)
+
+nest.add("extraction_prompt", ["aki_keyphrases"])
+
+nest.add('prompts', PROMPT_LIST)
+
+@nest.add_target_with_env(localenv)
+def extract_llm_output(env, outdir, c):
+    targets = [
+        path_join(outdir, "log_extract_hierarchy.txt"),
+        path_join(outdir, "concept_extractions.csv"),
+    ]
+    c["llm_concept_extract"] = targets[1]
+    if os.path.exists(targets[1]):
+        return
+
+    prompts_dict = PROMPT_DICT[c['prompts']]
+
+    cmd = [
+        "python scripts/extract_llm_concepts.py",
+        f"--seed",
+        0,
+        "--batch-size",
+        LLM_DICT[c["llm_model"]]["batch_size"] * 2,
+        "--num-new-tokens",
+        LLM_DICT[c["llm_model"]]["max_new_tokens"],
+        "--in-dataset-file ${SOURCES[0]}",
+        "--indices-file ${SOURCES[1]}",
+        "--prompt-file",
+        prompts_dict[c["extraction_prompt"]],
+        "--log-file ${TARGETS[0]}",
+        "--llm-output ${TARGETS[1]}",
+        "--llm-model-type",
+        c["llm_model"],
+        "--cache-file",
+        CACHE_FILE
+    ]
+
+    sources = [
+        c["make_notes_data"][0],
+        c["train_test_split"][0],
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+nest.add("init_concept_extraction", ["llm_output"])
+nest.add("residual_learner", ["count_l2"])
+nest.add(
+    'max_meta_concepts',
+    [20],
+    label_func=lambda c: "max_concepts_%s" % c
+)
+nest.add(
+    'goal_meta_concepts',
+    [10],
+    label_func=lambda c: "num_concepts_%s" % c
+)
+
+nest.add("train_frac", [
+    0.75
+], label_func=lambda c: "train_frac_%.2f" % c)
+
+
+# Add ensemble training aggregates
+nest.add_aggregate(
+    "ensemble_training_histories", dict
+)  # Maps init_seed -> training_history_file
+nest.add_aggregate(
+    "ensemble_extraction_files", dict
+)  # Maps init_seed -> extraction_file
+
+
+INIT_SEEDS = [1,2]
+
+@nest.add_target_with_env(localenv)
+def train_ensemble(env, outdir, c):
+    """Train ensemble using coordinated EnsembleTrainer for all init_seeds."""
+    prompts_dict = PROMPT_DICT[c['prompts']]
+
+    cmd = [
+        "python scripts/train_ensemble.py",
+        "--init-seeds",
+        " ".join(map(str, INIT_SEEDS)),
+        "--train-frac",
+        c["train_frac"],
+        "--max-meta-concepts",
+        c["max_meta_concepts"],
+        "--goal-num-meta-concepts",
+        c["goal_meta_concepts"],
+        "--num-epochs",
+        NUM_EPOCHS,
+        "--num-greedy-epochs",
+        NUM_GREEDY_EPOCHS,
+        "--batch-size",
+        LLM_DICT[c["llm_model"]]["batch_size"],
+        "--batch-concept-size",
+        20,
+        "--batch-obs-size",
+        1,
+        "--llm-model",
+        c["llm_model"],
+        "--cache-file",
+        CACHE_FILE,
+        "--prompt-concepts-file",
+        (prompts_dict["concept_prompts"]["probabilistic"]),
+        "--prompt-iter-file",
+        prompts_dict["iter_prompts"],
+        "--baseline-init-file",
+        (prompts_dict["concept_prompts"]["baseline_init"]),
+        "--residual-model-type",
+        "l2",
+        "--final-model-type",
+        "l1_sklearn",
+        "--num-top-residual-words",
+        LLM_DICT[c["llm_model"]]["num_top_resid_words"],
+        "--max-new-tokens",
+        LLM_DICT[c["llm_model"]]["max_new_tokens"],
+        "--max-section-length",
+        LLM_DICT[c["llm_model"]]["max_binary_extract_length"],
+        "--concept-column",
+        "llm_output",
+        "--text-summary-column",
+        "llm_output",
+        # Dual-track enhancement parameters
+        "--concept-generation-mode",
+        "standard",
+        "--do-coef-check" if prompts_dict.get("do_coef_check", False) else "",
+        "--in-dataset-file ${SOURCES[0]}",
+        "--indices-csv ${SOURCES[1]}",
+        "--init-concepts-file ${SOURCES[2]}",
+        "--output-dir",
+        path_join("exp_aki_final", outdir),
+        "--log-file",
+        path_join("exp_aki_final", outdir, "log_ensemble.txt"),
+    ]
+
+    sources = [
+        c["make_notes_data"][0],
+        c["train_test_split"][0],
+        c["llm_concept_extract"],  # extracted concepts
+    ]
+
+    # Create mkdir commands for init_seed subdirectories
+    mkdir_commands = []
+    for init_seed in INIT_SEEDS:
+        init_seed_dir = path_join("exp_aki_final", outdir, f"init_seed_{init_seed}")
+        mkdir_commands.append(f"mkdir -p {init_seed_dir}")
+
+    # Combine mkdir commands with the main command
+    full_cmd = " && ".join(mkdir_commands + [" ".join(map(str, cmd))])
+
+    # Create targets for all init_seeds (training histories and extraction files)
+    targets = []
+    for init_seed in INIT_SEEDS:
+        training_history = path_join(
+            outdir, f"init_seed_{init_seed}", "training_history.pkl"
+        )
+        extraction_file = path_join(outdir, f"init_seed_{init_seed}", "extraction.pkl")
+        targets.extend([training_history, extraction_file])
+
+        # Store in aggregates for downstream targets
+        c["ensemble_training_histories"][init_seed] = training_history
+        c["ensemble_extraction_files"][init_seed] = extraction_file
+
+    # c["ensemble_checkpoint"] = path_join(outdir, "ensemble_state_checkpoint.pkl")
+    # Add log files, checkpoint file
+    targets.extend(
+        [
+            path_join(outdir, "log_ensemble.txt"),
+            path_join(outdir, "ensemble_state_checkpoint.pkl"),
+        ]
+    )
+    c["prompt_model_dict"][c["prompts"]] = targets[-1]
+
+    # Mark training history files as Precious to prevent SCons from deleting them
+    # so we can continue training across SCons runs
+    training_history_files = [
+        path_join(outdir, f"init_seed_{init_seed}", "training_history.pkl")
+        for init_seed in INIT_SEEDS
+    ]
+    env.Precious(training_history_files)
+    env.Precious(path_join(outdir, "ensemble_state_checkpoint.pkl"))
+    env.Precious(path_join(outdir, "log_ensemble.txt"))
+
+    return env.Command(targets, sources, full_cmd)
+
+# nest.add("init_seed", INIT_SEEDS, label_func=lambda c: "init_seed_%d" % c)
+
+# @nest.add_target_with_env(localenv)
+# def plot_individual_seed(env, outdir, c):
+#     """Plot results for individual init_seed (uses ensemble training files directly)."""
+#     init_seed = c["init_seed"]
+
+#     cmd = [
+#         "python scripts/plot_exp_aki.py",
+#         "--seed",
+#         c["init_seed"] + 15,
+#         "--num-posterior-iters",
+#         NUM_EPOCHS * c["num_meta_concepts"],
+#         "--history-file ${SOURCES[0]}",
+#         "--extraction-file ${SOURCES[1]}",
+#         "--plot ${TARGETS[0]}",
+#         "--concepts-csv ${TARGETS[1]}",
+#     ]
+
+#     # Reference the ensemble training history and extraction file directly
+#     sources = [
+#         c["ensemble_training_histories"][init_seed],
+#         c["ensemble_extraction_files"][init_seed],
+#     ]
+#     targets = [
+#         path_join(outdir, "bayesian_hier.png"),
+#         path_join(outdir, "concepts.csv"),
+#     ]
+
+#     return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+# nest.pop("init_seed")
+
+@nest.add_target_with_env(localenv)
+def evaluate_ensemble_test_single(env, outdir, c):
+    """Evaluate ensemble performance using all training histories."""
+    cmd = (
+        [
+            "python scripts/evaluate_ensemble.py",
+            "--checkpoint-path ${SOURCES[0]}",
+            "--in-dataset-file ${SOURCES[1]}",
+            "--indices-csv ${SOURCES[2]}",
+            "--partition test",
+            "--output-predictions ${TARGETS[0]}", 
+            "--output-metrics ${TARGETS[1]}", 
+            "--text-summary-column",
+            "sentence",
+            "--seed",
+            c["replicate_seed"] + 10,
+            "--log-file ${TARGETS[2]}",
+            "--annot ${TARGETS[3]}",
+            "--use-posterior-iters",
+            1,
+            "--save-per-init",  # Save predictions for each initialization
+        ]
+    )
+
+    sources = [
+        c["train_ensemble"][-1],
+        c["make_notes_data"][0],
+        c["train_test_split"][0]
+    ]
+    targets = [
+        path_join(outdir, "test_ensemble1_preds.csv"),
+        path_join(outdir, "test_ensemble1_metrics.csv"),
+        path_join(outdir, "test_log_ensemble1_evaluation.txt"),
+        path_join(outdir, "test_ensemble1_annotations.csv"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+# @nest.add_target_with_env(localenv)
+# def evaluate_ensemble_test(env, outdir, c):
+#     """Evaluate ensemble performance using all training histories."""
+#     cmd = (
+#         [
+#             "python scripts/evaluate_ensemble.py",
+#             "--checkpoint-path ${SOURCES[0]}",
+#             "--in-dataset-file ${SOURCES[1]}",
+#             "--indices-csv ${SOURCES[2]}",
+#             "--partition test",
+#             "--output-predictions ${TARGETS[0]}", 
+#             "--output-metrics ${TARGETS[1]}", 
+#             "--text-summary-column",
+#             "sentence",
+#             "--seed",
+#             c["replicate_seed"] + 10,
+#             "--log-file ${TARGETS[2]}",
+#             "--use-posterior-iters",
+#             NUM_EPOCHS * c["num_meta_concepts"],  # Use last N iterations
+#             "--save-per-init",  # Save predictions for each initialization
+#             "--annotations-csv ${TARGETS[3]}",
+#         ]
+#     )
+
+#     sources = [
+#         c["ensemble_checkpoint"],
+#         c["make_notes_data"][0],
+#         c["train_test_split"][0]
+#     ]
+#     targets = [
+#         path_join(outdir, "test_ensemble_preds.csv"),
+#         path_join(outdir, "test_ensemble_metrics.csv"),
+#         path_join(outdir, "test_log_ensemble_evaluation.txt"),
+#         path_join(outdir, "test_annotations.csv"),
+#     ]
+
+#     return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+# @nest.add_target_with_env(localenv)
+# def compute_concepts_prevalence(env, outdir, c):
+#     cmd = (
+#         [
+#             "python scripts/get_concepts_frequency.py",
+#             "--column-name aki_outcome",
+#             "--annotations-path ${SOURCES[0]}",
+#             "--results-csv ${TARGETS[0]}",
+#             "--original-csv ", AKI_TABULAR_DATA,
+#             "--indices-csv ${SOURCES[1]}",
+#             "--partition test",
+#             "--data-csv ${SOURCES[2]}",
+#         ]
+#     )
+
+#     sources = [
+#         c["evaluate_ensemble_test"][-1],
+#         c["train_test_split"][0],
+#         c["make_notes_data"][0]
+#     ]
+#     targets = [
+#         path_join(outdir, "test_concepts_prevalence.csv"),
+#     ]
+
+#     return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+nest.pop("prompts")
+
+@nest.add_target_with_env(localenv)
+def predict_comparator_kheterpal(env, outdir, c):
+    cmd = [
+        "python scripts/aki_comparator.py",
+        "--checkpoint-path ${SOURCES[0]}",
+        "--indices-csv ${SOURCES[2]}",
+        "--partition test",
+        "--seed",
+        c["seed"],
+        "--in-csv ${SOURCES[1]}",
+        "--tabular",
+        AKI_TABULAR_DATA,
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}",
+    ]
+
+    sources = [
+        list(c["prompt_model_dict"].values())[0],
+        c["make_notes_data"][0],
+        c["train_test_split"][0]
+    ]
+    targets = [
+      path_join(outdir, "test_comparator_preds.csv"), 
+      path_join(outdir, "test_comparator_metrics.csv"), 
+      path_join(outdir, "test_comparator.txt")
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+@nest.add_target_with_env(localenv)
+def predict_openevidence_comparator(env, outdir, c):
+    cmd = [
+        "python scripts/train_test_aki_openevidence_comparator.py",
+        "--checkpoint-path ${SOURCES[0]}",
+        "--train-indices-csv ${SOURCES[2]}",
+        "--test-indices-csv ${SOURCES[2]}",
+        "--seed",
+        c["seed"],
+        "--in-train-csv ${SOURCES[1]}",
+        "--in-test-csv ${SOURCES[1]}",
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}",
+    ]
+
+    sources = [
+        list(c["prompt_model_dict"].values())[0],
+        c["make_notes_data"][0],
+        c["train_test_split"][0]
+    ]
+    targets = [
+      path_join(outdir, "test_openevid_preds.csv"), 
+      path_join(outdir, "test_openevid_metrics.csv"), 
+      path_join(outdir, "test_openevid.txt")
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+# # ---- Evalute AKI on new data from 4/24 - 12/24 ----
+nest.pop("test_frac")
+
+AKI_TABULAR_NEW_DATA = "exp_aki/data/preop_data_commit_267189f.csv"
+AKI_NOTE_NEW_DATA = "exp_aki/data/preop_data_suppl_note_commit_267189f.csv"
+
+nest.add("new_max_obs", [400], label_func=lambda c: f"new_max_obs_{c}")
+
+@nest.add_target_with_env(localenv)
+def make_notes_new_data(env, outdir, c):
+    cmd = [
+        "python scripts/assemble_aki.py",
+        "--max-obs",
+        c["new_max_obs"],
+        "--seed",
+        c["seed"],
+        "--tabular-dataset-file",
+        AKI_TABULAR_NEW_DATA,
+        "--note-dataset-file",
+        AKI_NOTE_NEW_DATA,
+        "--out-csv ${TARGETS[0]}",
+        "--log ${TARGETS[1]}",
+    ]
+
+    targets = [path_join(outdir, "new_notes.csv"), path_join(outdir, "log_load_new_aki.txt")]
+
+    return env.Command(targets, [], " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def predict_comparator_new_data(env, outdir, c):
+    cmd = [
+        "python scripts/aki_comparator.py",
+        "--seed",
+        c["seed"],
+        "--in-csv ${SOURCES[0]}",
+        "--checkpoint-path ${SOURCES[1]}",
+        "--tabular",
+        AKI_TABULAR_NEW_DATA,
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}"
+    ]
+
+    sources = [
+        c["make_notes_new_data"][0],
+        list(c["prompt_model_dict"].values())[0],
+    ]
+    targets = [
+      path_join(outdir, "new_test_comparator_preds.csv"), 
+      path_join(outdir, "new_test_comparator_metrics.csv"), 
+      path_join(outdir, "new_test_comparator.txt")
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+@nest.add_target_with_env(localenv)
+def predict_openevidence_new_comparator(env, outdir, c):
+    cmd = [
+        "python scripts/train_test_aki_openevidence_comparator.py",
+        "--checkpoint-path ${SOURCES[3]}",
+        "--train-indices-csv ${SOURCES[2]}",
+        "--seed",
+        c["seed"],
+        "--in-train-csv ${SOURCES[0]}",
+        "--in-test-csv ${SOURCES[1]}",
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}",
+    ]
+    sources = [
+        c["make_notes_data"][0],
+        c["make_notes_new_data"][0],
+        c["train_test_split_agg"][0],
+        list(c["prompt_model_dict"].values())[0],
+    ]
+    targets = [
+      path_join(outdir, "new_test_openevid_preds.csv"), 
+      path_join(outdir, "new_test_openevid_metrics.csv"), 
+      path_join(outdir, "new_test_openevid.txt")
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+nest.add("new_data_eval", PROMPT_LIST)
+
+@nest.add_target_with_env(localenv)
+def eval_new_notes_single(env, outdir, c):
+    cmd = (
+        [
+            "python scripts/evaluate_ensemble.py",
+            "--checkpoint-path ${SOURCES[0]}",
+            "--in-dataset-file ${SOURCES[1]}",
+            "--output-predictions ${TARGETS[0]}", 
+            "--output-metrics ${TARGETS[1]}", 
+            "--text-summary-column",
+            "sentence",
+            "--seed",
+            c["replicate_seed"] + 10,
+            "--log-file ${TARGETS[2]}",
+            "--use-posterior-iters",
+            1,
+            "--save-per-init",  # Save predictions for each initialization
+        ]
+    )
+
+    sources = [
+        c["prompt_model_dict"][c["new_data_eval"]],
+        c["make_notes_new_data"][0],
+    ]
+    targets = [
+        path_join(outdir, "test_ensemble1_preds.csv"),
+        path_join(outdir, "test_ensemble1_metrics.csv"),
+        path_join(outdir, "test_log_ensemble1_evaluation.txt"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))

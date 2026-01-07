@@ -1,0 +1,12 @@
+You will be given clinical notes and a series of yes/no questions. For each question, answer with 1 (yes) if the information is mentioned in the note, or 0 (no) if it is not. Provide your answers in JSON format with each question mapped to its corresponding answer (0 or 1) Questions:
+{prompt_questions}
+
+clinical notes:
+{sentence}
+
+Example answer: {
+    "0": 0,
+    "1": 1,
+    "2": 0
+}
+Answer all the questions and do not answer with anything else besides valid JSON. Do not add comments to the JSON.

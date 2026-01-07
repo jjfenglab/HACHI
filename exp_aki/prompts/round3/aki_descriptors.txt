@@ -1,0 +1,49 @@
+You are extracting characteristics and clinical factors of a patient from pre-operative clinical notes that may influence a patient's risk of acute kidney injury (AKI) when undergoing anesthesia during surgery. Focus entirely on factors explicitly mentioned in the notes.
+
+(A) Extract patient factors that may:
+- Increase AKI risk, be specific and detailed (e.g., male, elderly, chronic kidney disease, renal impairment, elevated creatinine, cardiac volume overload, pulmonary edema, pitting lower extremity edema, jugular venous distension, congestive heart failure exacerbations, hepatic fluid accumulation, ascites, abdominal distension, decompensated heart failure, orthopnea, paroxysmal nocturnal dyspnea, ejection fraction < 40%, elevated BNP, active CAD, untreated CAD, angina, chest pain, poor functional capacity, <4 METs, inability to climb stairs, severe gastroesophageal reflux, active systemic infection, sepsis, bacteremia, therapeutic antibiotics, came from ICU, bleeding diathesis,  coagulopathy, hemophilia, elevated INR, low hemoglobin, anemia, intubated, home oxygen use, tracheostomy, elevated INR, low platelet count, abnormal potassium levels, uncontrolled hyperglycemia, multiple medications, recent blood transfusions, mechanical ventilation, ARDS)
+- Decrease AKI risk, be specific and detailed (e.g., normal pulmonary function, lungs clear to auscultation, good exercise tolerance, >= 4 METs, ability to climb two flights of stairs, came from home, outpatient status, normal creatinine, normal liver function, hemodynamically stable, normal lung function, normal cardiac function)
+- Indicate AKI severity or complications, be specific and detailed (e.g., doubling creatinine, swelling, requirement for paracentesis, febrile, requiring intensive care)
+
+(B) Extract surgery factors that may:
+- Increase AKI risk (e.g., high risk of major blood loss, abdominal surgery, liver transplantation, Whipple procedure, anticipated blood loss > 500mL, high risk of blood transfusion, major trauma surgery, transplant surgery, expected duration >= 3 hours, extended operative time, long surgery, general anesthesia, emergency surgery, intrathoracic surgery, intraperitoneal surgery, high risk of bleeding, blood transfusion expected, anticipated blood loss)
+- Decrease AKI risk (e.g., short surgical duration, expected duration < 3 hours, regional anesthesia, monitored anesthesia care, minimally invasive surgery, outpatient surgery, local anesthesia)
+
+(C) Extract medication the patient is taking which may:
+- Increase AKI risk (e.g., nephrotoxic home medications,  NSAIDs, ACE inhibitors, ARBs, loop diuretics, vancomycin,  gentamicin, pressors)
+
+For each factor, provide:
+1. The primary descriptor (exact or paraphrased from the note)
+2. Synonyms or alternative phrasings
+3. Broader generalizations that capture similar concepts
+
+Requirements:
+- Each descriptor should be ≤3 words
+- Focus on clinically relevant factors
+- Include both specific terms and generalizable concepts
+- Separate items with commas
+- Avoid overly general keyphrases like “gastrointestinal discomfort.” Do not state overly general concepts like "protective factor", "risk factor", "low risk", or "high risk" because we are using these terms to brainstorm/learn specific factors that clinicians can use to predict AKI risk.
+
+Note(s):
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the medical note text.
+
+Output Format:
+{
+“reasoning”: "Step-by-step reasoning through the keyphrase model concepts"
+ “keyphrases”: [ "Primary descriptor”, “Alternative phrasing”, “General concept"]
+}
+
+...
+
+Examples:
+{
+“reasoning”: "Your step by step reasoning"
+ “keyphrases”: [
+        "Septic shock, sepsis, systematic inflammation",
+        "Cervical strain, Neck pain, Muscle spasm",
+        "Low METS, low exercise tolerance",
+        ...
+    ]
+}

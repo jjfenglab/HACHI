@@ -1,0 +1,96 @@
+We are fitting a concept bottleneck model (CBM) to predict acute kidney injury (AKI) risk for patients undergoing anesthesia during surgery. The goal is to come up with a few meta-concepts that clinicians can use to easily risk-stratify patients for whether they are at high risk of developing with AKI within 7 days after surgery. As training data, we are using preoperative anesthesia notes to retrospectively extract predictive characteristics of the patients and their planned surgeries. A meta-concept has to be defined in terms of a yes/no question of the form "Does the note mention this patient having…?" or "Does the note mention the surgery…?". Pick meta-concepts that are as specific as possible, without being too broad.
+
+Our team was previously considering the following set of concepts for the CBM:
+<question_list>
+Does the note mention this patient having high serum creatinine?
+Does the note mention this patient having end-stage renal disease?
+Does the note mention the patient having heart failure?
+Does the note mention this patient experiencing fluid retention?
+Does the note mention this patient having high blood sugar?
+Does the note mention this patient having a normal BMI?
+Does the note mention this patient having a metabolic disorder?
+</question_list>
+
+Clinical experts gave the following feedback to our concepts:
+<feedback>
+* The CBM should encompass concepts from two categories: (i) characteristics of the patient and (ii) characteristics of the surgery that together influence the patient’s risk of developing AKI.
+* Some concepts like cardiovascular disease, coronary artery disease, and gastrointestinal discomfort are too broad. For instance, some cardiovascular diseases are life-threatening and others are almost not worth mentioning when considering the clinical outcome. Focus on concepts that distinguish between patients having low versus high risk. 
+* Rather than having concepts that ask if a patient has a disease diagnosis, consider concepts like “Does the note mention the patient experiencing symptoms related to ____?”
+* Concepts that the expert beleives are likely relevant, but should be assessed against patterns seen in the actual data:
+Does the note mention the patient having a surgery that is high risk? 
+Does the note mention the patient having acid reflux?
+Does the note mention the patient having a normal pulmonary exam?
+Does the note mention the patient having fluid accumulation?
+Does the note mention the patient having heart failure?
+Does the note mention the patient having less than 5.5 METS of functional capacity?
+Does the note mention the patient having untreated coronary artery disease (CAD)?
+Does the note mention the patient having an active infection for which they are receiving antibiotics?
+Does the note mention the patient having any bleeding disorder?
+Does the note mention the patient needing to be intubated or have supplemental oxygen?
+Does the note mention the patient needing to take multiple medications at home?
+Does the note mention the surgery being long (more than 3 hours)?
+Does the note mention the surgery having a high risk of bleeding?
+Does the note mention the surgery likely requiring a blood transfusion?
+Does the note mention the surgery being emergent?
+* Other categories of concepts clinical experts have suggested considering include:
+  - ​​Patient characteristics: fluid accumulation, abnormal/ normal pulmonary findings, heart failure symptoms, acid reflux, bleeding disorders, abnormal laboratory values, creatinine levels, multiple medications, active infection requiring antibiotics, functional capacity (e.g., METS score, good exercise tolerance)
+  - Pre-surgical status: location prior to surgery (ICU, hospital ward, or home), if the patient is intubated or needs supplemental oxygen
+  - Surgical characteristics: anticipated bleeding risk, expected surgical duration, need for blood transfusion during the procedure, certain types of surgery that may be lower or higher risk for developing AKI
+<feedback>
+
+Given this feedback, we conducted an updated data analysis to find the top phrases describing either the patient and/or the planned surgery that are most associated with AKI. We did this by fitting a logistic regression model with tf-idf features.
+Phrases with top coefficients:
+
+{top_features_df}
+
+YOUR TASK: 
+Propose {max_meta_concepts} candidate meta-concepts for a CBM. Do this by analyzing the results from the data-driven analyses and incorporating expert feedback, when appropriate. You can merge, revise, or add new questions. Systematically review the tf-idf top words list. Prioritize concepts that appear in the tf-idf results and align with the feedback guidance.
+
+Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc).
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the residual model concepts (from most to least predictive) and combined them with the feedback suggestions.”,
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    {
+      "concept": "<QUESTION 2>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    ...
+    {
+      "concept": "<QUESTION {num_meta_concepts}>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    }
+  ]
+}
+
+
+Example answer:
+{
+  "reasoning": "Step-by-step reasoning through the residual model concepts and feedback",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient having fluid accumulation?",
+      "words": [“fluid buildup”, “fluid collection”, “dehydration”]
+    },
+    {
+      "concept": “Does the note mention the patient having a normal pulmonary exam?”
+      "words": [“clear lungs”, “wheezing, “lungs clear”]
+    },
+    {
+      "concept": "Does the note mention the patient having heart failure?",
+      "words": [“CHF”, “cardiac failure”, “HF”]
+    },
+    {
+      "concept": "Does the note mention the patient having a surgery with a high risk of bleeding?",
+      "words": ["risk of bleeding", "bleeding risk"]
+    }
+    ...
+    ]
+}
+
+Final answer:

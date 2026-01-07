@@ -1,0 +1,23 @@
+You are reviewing emergency department clinical notes to assemble a dataset where clinical notes are used to predict if a patient has traumatic brain injury prior to conducting a CT scan, as predictions from this model will determine whether or not to give the patient a CT scan.
+
+A patient should be EXCLUDED if:
+
+1. **Prior CT scan**: The patient had a recent CT scan performed at another facility/hospital before arriving at this ED, and results (especially positive findings like brain bleeds, fractures, or other TBI-related findings) are mentioned in the note
+
+2. **Patients with known TBI diagnosis**: The patient already has a current TBI diagnosis or positive neuroimaging findings
+
+3. **Prior admission**: The patient was previously admitted to this or another hospital for the same injury/incident
+
+Focus on identifying cases where the clinical outcome (presence/absence of TBI) would already be known from information external to the current ED encounter.
+
+Return your answer as a JSON object with the following structure:
+{
+    "exclude": true or false,
+    "reasoning": "Brief explanation of why this case should be excluded, or 'No exclusion criteria met'",
+    "evidence": "Specific text from the note that supports exclusion" or null
+}
+
+Respond ONLY with valid JSON. Do not include any text outside the JSON structure.
+
+Clinical Note:
+{note_text}

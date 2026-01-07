@@ -1,0 +1,46 @@
+You are extracting characteristics and clinical factors of a patient from pre-operative clinical notes that may influence a patient's risk of acute kidney injury (AKI) when undergoing anesthesia during surgery. Focus entirely on factors explicitly mentioned in the notes.
+
+(A) Extract patient factors that may:
+- Increase AKI risk, be specific and detailed (e.g., male, heart failure, diabetes, obesity, active infection, coronary disease, bleeding disorder, multiple medications, supplemental oxygen, intubated, low METS, limited exercise tolerance, unable to climb stairs)
+- Decrease AKI risk, be specific and detailed (e.g., normal lung function, frequent urine output, normal creatinine, high METS, exercises regularly, came from home, outpatient)
+- Indicate AKI severity or complications, be specific and detailed (e.g., fluid accumulation, doubling creatinine, swelling, acid reflux)
+
+(B) Extract surgery factors that may:
+- Increase AKI risk (e.g., high risk of bleeding, extended operative time, blood transfusion expected, anticipated blood loss, abdominal surgery, high risk surgery)
+- Decrease AKI risk (e.g., short surgery, regional anesthesia, minimally invasive surgery, come-on-go surgery)
+
+For each factor, provide:
+1. The primary descriptor (exact or paraphrased from the note)
+2. Synonyms or alternative phrasings
+3. Broader generalizations that capture similar concepts
+
+Requirements:
+- Each descriptor should be ≤3 words
+- Focus on clinically relevant factors
+- Include both specific terms and generalizable concepts
+- Separate items with commas
+- Avoid overly general keyphrases like “gastrointestinal discomfort.” Do not state overly general concepts like "protective factor", "risk factor", "low risk", or "high risk" because we are using these terms to brainstorm/learn specific factors that clinicians can use to predict AKI risk.
+
+Note(s):
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the medical note text.
+
+Output Format:
+{
+“reasoning”: "Step-by-step reasoning through the keyphrase model concepts"
+ “keyphrases”: [ "Primary descriptor”, “Alternative phrasing”, “General concept"]
+}
+
+...
+
+Examples:
+{
+“reasoning”: "Your step by step reasoning"
+ “keyphrases”: [
+        "Septic shock, sepsis, systematic inflammation",
+        "Cervical strain, Neck pain, Muscle spasm",
+        "Low METS, low exercise tolerance",
+        ...
+    ]
+}

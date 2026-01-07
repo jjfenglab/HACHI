@@ -1,0 +1,519 @@
+import os
+from os.path import join as path_join
+
+from dotenv import load_dotenv
+from nestly import Nest
+from nestly.scons import SConsWrap
+from SCons.Script import Import
+
+load_dotenv()
+
+
+# For SCons - Import env from parent
+Import("env")
+localenv = env.Clone()
+
+# Cache configuration
+CACHE_FILE = "peds_cache.db"
+
+# Set up state
+nest = SConsWrap(Nest(), localenv["output"], alias_environment=localenv)
+
+# PEDS data source and database paths
+PEDS_ENCOUNTER_DATA = "exp_peds/data/HeadInjEncounters.csv"
+# PEDS_ENCOUNTER_DATA_CLEAN_Y is the same file as PEDS_ENCOUNTER_DATA except y=1 if tbi_f=1 or 2 and y=0 if tbi_f=0
+PEDS_ENCOUNTER_DATA_CLEAN_Y = "exp_peds/data/HeadInjEncounters_clean_y.csv"
+PEDS_ENCOUNTER_NOTE_DATA = "exp_peds/data/Note_Text.json"
+
+NUM_EPOCHS = 2
+NUM_GREEDY_EPOCHS = 2
+
+# USING VERSA
+LLM_MODELS = [
+    # TODO: which one?
+    "gpt-4o-2024-08-06",
+]
+LLM_DICT = {
+    "gpt-4o-2024-08-06": {
+        "api": True,  # using API
+        "batch_size": 20,
+        "max_extract_length": None,
+        "max_binary_extract_length": 10000,
+        "max_new_tokens": 15000,
+        "num_top_resid_words": 40,
+        "llm_iter_model": "gpt-4o",
+    },
+}
+
+# Round 1: Outcome Aware
+# these prompts mention the outcome we are predicting
+PROMPTS_WITH_TBI = {
+    "round_name": "round1_with_tbi",
+    "concept_prompts": {
+        "baseline_init": "exp_tbi/prompts/with_tbi/baseline_init.txt",
+        "probabilistic": "exp_tbi/prompts/with_tbi/concept_questions_probabilistic.txt",
+    },
+    "iter_prompts": "exp_tbi/prompts/with_tbi/bayesian_iter.txt",
+    "peds_keyphrases": "exp_tbi/prompts/with_tbi/tbi_descriptors.txt",
+    "include_age": False,
+    "pos_ratio": 0.5,
+    "do_coef_check": False,
+}
+
+# Round 1: Outcome Masked
+# these prompts do not mention the outcome we are predicting
+PROMPTS_WITHOUT_TBI = {
+    "round_name": "round1_without_tbi",
+  "concept_prompts": {
+      "baseline_init": "exp_tbi/prompts/without_tbi/baseline_init.txt",
+      "probabilistic": "exp_tbi/prompts/without_tbi/concept_questions_probabilistic.txt",
+  },
+  "iter_prompts": "exp_tbi/prompts/without_tbi/bayesian_iter.txt",
+  "peds_keyphrases": "exp_tbi/prompts/without_tbi/tbi_descriptors.txt",
+  "include_age": False,
+    "do_coef_check": False,
+}
+
+# Round 2: Clinical Feedback, after detection of data leak
+PROMPTS_ROUND2 = {
+    "round_name": "round2",
+    "concept_prompts": {
+        "baseline_init": "exp_tbi/prompts/round2/baseline_init.txt",
+        "probabilistic": "exp_tbi/prompts/round2/concept_questions.txt",
+    },
+    "iter_prompts": "exp_tbi/prompts/round2/bayesian_iter.txt",
+    "peds_keyphrases": "exp_tbi/prompts/round2/tbi_descriptors.txt",
+    "filter_tbi_notes": "exp_tbi/prompts/filter_note.txt",
+    "pos_ratio": 0.5,
+    "include_age": True,
+    "do_coef_check": False,
+}
+
+# Round 3: Clinical Feedback that the coefficients are odd
+PROMPTS_WITH_FEEDBACK_FILTER_DATA_LEAK = {
+    "round_name": "round3",
+  "concept_prompts": {
+      "baseline_init": "exp_tbi/prompts/round3/baseline_init.txt",
+      "probabilistic": "exp_tbi/prompts/round3/concept_questions.txt",
+  },
+  "iter_prompts": "exp_tbi/prompts/round3/bayesian_iter.txt",
+  "peds_keyphrases": "exp_tbi/prompts/round3/tbi_descriptors.txt",
+  "filter_tbi_notes": "exp_tbi/prompts/filter_note.txt",
+  "pos_ratio": 0.5,
+  "include_age": True,
+    "do_coef_check": True,
+}
+# Round 4: domain weights
+PROMPTS_ROUND4 = {
+    "round_name": "round4",
+  "concept_prompts": {
+      "baseline_init": "exp_tbi/prompts/round3/baseline_init.txt",
+      "probabilistic": "exp_tbi/prompts/round3/concept_questions.txt",
+  },
+  "iter_prompts": "exp_tbi/prompts/round3/bayesian_iter.txt",
+  "peds_keyphrases": "exp_tbi/prompts/round3/tbi_descriptors.txt",
+  "filter_tbi_notes": "exp_tbi/prompts/filter_note.txt",
+  "pos_ratio": 0.5,
+  "include_age": True,
+  "domain_weight": True,
+    "do_coef_check": True,
+}
+
+ROUND_PROMPT_DICT = {
+    'round1_with_tbi': PROMPTS_WITH_TBI,
+    'round1_without_tbi': PROMPTS_WITHOUT_TBI,
+    'round2': PROMPTS_ROUND2,
+    'round3': PROMPTS_WITH_FEEDBACK_FILTER_DATA_LEAK,
+    'round4': PROMPTS_ROUND4,
+}
+
+nest.add("max_obs", [800], label_func=lambda c: "max_obs_%d" % c)
+nest.add("seed", [0], label_func=lambda c: "seed_%d" % c)
+nest.add_aggregate("checkpoints_agg", dict)
+
+nest.add('round', [
+    'round1_with_tbi',
+    "round1_without_tbi",
+    'round2',
+    "round3",
+    "round4",
+])
+
+@nest.add_target_with_env(localenv)
+def make_notes_data(env, outdir, c):
+    prompts_dict = ROUND_PROMPT_DICT[c["round"]]
+    cmd = [
+        "python scripts/assemble_peds.py",
+        "--seed",
+        c["seed"],
+        "--max-obs",
+        c["max_obs"],
+        "--dataset-enc-file",
+        PEDS_ENCOUNTER_DATA,
+        "--dataset-enc-note-file",
+        PEDS_ENCOUNTER_NOTE_DATA,
+        "--out-csv ${TARGETS[0]}",
+        "--log ${TARGETS[1]}",
+        f"--pos-ratio {ROUND_PROMPT_DICT[c['round']]['pos_ratio']}" if 'pos_ratio' in ROUND_PROMPT_DICT[c['round']] else "",
+        "--include-age" if prompts_dict['include_age'] else "",
+    ]
+
+    targets = [path_join(outdir, "notes.csv"), path_join(outdir, "log_load_peds.txt")]
+
+    return env.Command(targets, [], " ".join(map(str, cmd)))
+
+nest.add("llm_model", LLM_MODELS)
+nest.add(
+    "replicate_seed",
+    [
+        1,
+    ],
+    label_func=lambda c: "replicate_seed_%d" % c,
+)
+
+# nest.add_aggregate("llm_concept_extract", str)
+nest.add("test_frac", [0.5], label_func=lambda c: "test_%.2f" % c)
+
+@nest.add_target_with_env(localenv)
+def train_test_split(env, outdir, c):
+    prompts_dict = ROUND_PROMPT_DICT[c["round"]]
+    cmd = [
+        "python scripts/train_test_split_peds.py",
+        "--seed",
+        c["replicate_seed"] + 1,
+        "--max-obs",
+        c["max_obs"],
+        "--data-csv ${SOURCES[0]}",
+        "--cache-file",
+        CACHE_FILE,
+        "--batch-size",
+        LLM_DICT[c["llm_model"]]["batch_size"],
+        "--max-tokens",
+        LLM_DICT[c["llm_model"]]["max_new_tokens"],
+        "--llm-model-type",
+        c["llm_model"],
+        f"--prompt-file {prompts_dict['filter_tbi_notes']}" if 'filter_tbi_notes' in prompts_dict else "",
+        "--test-frac",
+        c["test_frac"],
+        "--indices-csv ${TARGETS[0]}",
+        "--domain-column enc_dept_name" if prompts_dict.get('domain_weight', False) else "",
+        "--do-coef-check" if prompts_dict.get('do_coef_check', False) else "",
+    ]
+
+    sources = c["make_notes_data"]
+    targets = [
+        path_join(outdir, "train_test_indices.csv"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+@nest.add_target_with_env(localenv)
+def extract_llm_output(env, outdir, c):
+    targets = [
+        path_join(outdir, "log_extract.txt"),
+        path_join(outdir, "keyphrase_extractions.csv"),
+    ]
+    # c["llm_concept_extract"] = targets[1]
+    # if os.path.exists(targets[1]):
+    #     return
+
+    prompts_dict = ROUND_PROMPT_DICT[c['round']]
+
+    cmd = [
+        "python scripts/extract_llm_concepts.py",
+        f"--seed",
+        0,
+        "--batch-size",
+        LLM_DICT[c["llm_model"]]["batch_size"],
+        "--num-new-tokens",
+        LLM_DICT[c["llm_model"]]["max_new_tokens"],
+        "--in-dataset-file ${SOURCES[0]}",
+        "--indices-file ${SOURCES[1]}",
+        "--prompt-file",
+        prompts_dict["peds_keyphrases"],
+        "--log-file ${TARGETS[0]}",
+        "--llm-output ${TARGETS[1]}",
+        "--llm-model-type",
+        c["llm_model"],
+        "--cache-file",
+        CACHE_FILE,
+    ]
+
+    sources = [
+        c["make_notes_data"][0],
+        c["train_test_split"][0],
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+nest.add("init_concept_extraction", ["llm_output"])
+nest.add("residual_learner", ["count_l2"])
+
+
+nest.add(
+    'num_meta_concepts',
+    [20],
+    label_func=lambda c: "num_concepts_%s" % c
+)
+
+nest.add("train_frac", [
+    0.75
+], label_func=lambda c: "train_frac_%.2f" % c)
+
+# Add ensemble training aggregates
+nest.add_aggregate(
+    "ensemble_training_histories", dict
+)  # Maps init_seed -> training_history_file
+nest.add_aggregate(
+    "ensemble_extraction_files", dict
+)  # Maps init_seed -> extraction_file
+
+INIT_SEEDS = [1,2]
+
+@nest.add_target_with_env(localenv)
+def train_ensemble(env, outdir, c):
+    """Train ensemble using coordinated EnsembleTrainer for all init_seeds."""
+    prompts_dict = ROUND_PROMPT_DICT[c['round']]
+
+    cmd = [
+        "python scripts/train_ensemble.py",
+        "--init-seeds",
+        " ".join(map(str, INIT_SEEDS)),
+        "--train-frac",
+        c["train_frac"],
+        "--max-meta-concepts",
+        c["num_meta_concepts"],
+        "--num-epochs",
+        NUM_EPOCHS,
+        "--num-greedy-epochs",
+        NUM_GREEDY_EPOCHS,
+        "--batch-size",
+        LLM_DICT[c["llm_model"]]["batch_size"],
+        "--batch-concept-size",
+        20,
+        "--batch-obs-size",
+        1,
+        "--llm-model",
+        c["llm_model"],
+        "--cache-file",
+        CACHE_FILE,
+        "--prompt-concepts-file",
+        (prompts_dict["concept_prompts"]["probabilistic"]),
+        "--prompt-iter-file",
+        prompts_dict["iter_prompts"],
+        "--baseline-init-file",
+        (prompts_dict["concept_prompts"]["baseline_init"]),
+        "--residual-model-type",
+        "l2",
+        "--final-model-type",
+        "l1_sklearn",
+        "--num-top-residual-words",
+        LLM_DICT[c["llm_model"]]["num_top_resid_words"],
+        "--max-new-tokens",
+        LLM_DICT[c["llm_model"]]["max_new_tokens"],
+        "--max-section-length",
+        LLM_DICT[c["llm_model"]]["max_binary_extract_length"],
+        "--concept-column",
+        "llm_output",
+        "--text-summary-column",
+        "llm_output",
+        # Dual-track enhancement parameters
+        "--concept-generation-mode",
+        "standard",
+        "--in-dataset-file ${SOURCES[0]}",
+        "--indices-csv ${SOURCES[1]}",
+        "--init-concepts-file ${SOURCES[2]}",
+        "--output-dir",
+        path_join("exp_tbi", outdir),
+        "--log-file",
+        path_join("exp_tbi", outdir, "log_ensemble.txt"),
+    ]
+
+    sources = [
+        c["make_notes_data"][0],
+        c["train_test_split"][0],
+        c["extract_llm_output"][1],  # extracted concepts
+    ]
+
+    # Create mkdir commands for init_seed subdirectories
+    mkdir_commands = []
+    for init_seed in INIT_SEEDS:
+        init_seed_dir = path_join("exp_tbi", outdir, f"init_seed_{init_seed}")
+        mkdir_commands.append(f"mkdir -p {init_seed_dir}")
+
+    # Combine mkdir commands with the main command
+    full_cmd = " && ".join(mkdir_commands + [" ".join(map(str, cmd))])
+
+    # Create targets for all init_seeds (training histories and extraction files)
+    targets = []
+    for init_seed in INIT_SEEDS:
+        training_history = path_join(
+            outdir, f"init_seed_{init_seed}", "training_history.pkl"
+        )
+        extraction_file = path_join(outdir, f"init_seed_{init_seed}", "extraction.pkl")
+        targets.extend([training_history, extraction_file])
+
+        # Store in aggregates for downstream targets
+        c["ensemble_training_histories"][init_seed] = training_history
+        c["ensemble_extraction_files"][init_seed] = extraction_file
+
+    c["checkpoints_agg"][c["round"]] = {
+        "model": path_join(outdir, "ensemble_state_checkpoint.pkl"),
+        "in_dataset_csv": sources[0],
+        "indices_csv": sources[1],
+    }
+    # Add log files, checkpoint file
+    targets.extend(
+        [
+            path_join(outdir, "log_ensemble.txt"),
+            path_join(outdir, "ensemble_state_checkpoint.pkl"),
+        ]
+    )
+
+    # Mark training history files as Precious to prevent SCons from deleting them
+    # so we can continue training across SCons runs
+    training_history_files = [
+        path_join(outdir, f"init_seed_{init_seed}", "training_history.pkl")
+        for init_seed in INIT_SEEDS
+    ]
+    env.Precious(training_history_files)
+    env.Precious(path_join(outdir, "ensemble_state_checkpoint.pkl"))
+    env.Precious(path_join(outdir, "log_ensemble.txt"))
+
+    return env.Command(targets, sources, full_cmd)
+
+nest.pop("round")
+
+@nest.add_target_with_env(localenv)
+def predict_pecarn(env, outdir, c):
+    cmd = [
+        "python scripts/tbi_pecarn.py",
+        "--checkpoint-path ${SOURCES[0]}",
+        "--indices-csv ${SOURCES[2]}",
+        "--partition test",
+        "--seed",
+        c["seed"],
+        "--in-csv ${SOURCES[1]}",
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}",
+        "--image ${TARGETS[3]}",
+    ]
+
+    sources = [
+        c["checkpoints_agg"]["round2"]["model"],
+        c["checkpoints_agg"]["round4"]["in_dataset_csv"],
+        c["checkpoints_agg"]["round4"]["indices_csv"],
+    ]
+    targets = [
+      path_join(outdir, "test_pecarn_preds.csv"), 
+      path_join(outdir, "test_pecarn_metrics.csv"), 
+      path_join(outdir, "test_log_pecarn.txt"),
+      path_join(outdir, "test_roc_pecarn.png"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+@nest.add_target_with_env(localenv)
+def predict_openevidence(env, outdir, c):
+    cmd = [
+        "python scripts/train_test_tbi_openevidence_comparator.py",
+        "--checkpoint-path ${SOURCES[0]}",
+        "--indices-csv ${SOURCES[2]}",
+        "--seed",
+        c["seed"],
+        "--in-csv ${SOURCES[1]}",
+        "--out-csv ${TARGETS[0]}",
+        "--metrics-csv ${TARGETS[1]}",
+        "--log ${TARGETS[2]}",
+    ]
+
+    sources = [
+        c["checkpoints_agg"]["round2"]["model"],
+        c["checkpoints_agg"]["round4"]["in_dataset_csv"],
+        c["checkpoints_agg"]["round4"]["indices_csv"],
+    ]
+    targets = [
+      path_join(outdir, "test_openevidence_preds.csv"), 
+      path_join(outdir, "test_openevidence_metrics.csv"), 
+      path_join(outdir, "test_log_openevidence.txt")
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+nest.add(
+    "eval_method",  
+    [
+        "round1_with_tbi",
+        "round1_without_tbi",
+        "round2",
+        "round3",
+        "round4",
+    ],
+    label_func=lambda c: "clean_eval_%s" % c,
+)
+
+
+# test 
+@nest.add_target_with_env(localenv)
+def evaluate_ensemble_test_single(env, outdir, c):
+    """Evaluate ensemble performance using all training histories."""
+    exclude_concepts = " ".join([
+        "\"Does the note mention the patient having a protective factor against TBI?\"",
+        "\"Does the note mention the patient having a neurological event?\"",
+        "\"Does the note mention a brain bleed?\"",
+        "\"Does the note mention a Glasgow Coma Scale score?\"",
+        "\"Does the note mention a skull fracture?\"",
+        "\"Does the note mention an imaging result related to the head?\"",
+        "\"Does the note mention a neurological assessment being performed?\"",
+        "\"Does the note mention the patient having a Glasgow Coma Scale assessment?\"",
+    ])
+    cmd = (
+        [
+            "python scripts/evaluate_ensemble.py",
+            "--checkpoint-path ${SOURCES[0]}",
+            "--model-in-dataset-file ${SOURCES[3]}",
+            "--model-indices-csv ${SOURCES[4]}",
+            "--model-obs-id pat_enc_csn_id_surrogate",
+            "--in-dataset-file ${SOURCES[1]}",
+            "--indices-csv ${SOURCES[2]}",
+            "--partition test",
+            "--output-predictions ${TARGETS[0]}", 
+            "--output-metrics ${TARGETS[1]}", 
+            "--text-summary-column",
+            "sentence",
+            "--age-column",
+            "age_y",
+            "--age-cutoff",
+            2,
+            "--domain-column",
+            "enc_dept_name",
+            "--seed",
+            c["seed"] + 10,
+            "--log-file ${TARGETS[2]}",
+            "--use-posterior-iters",
+            1,
+            "--save-per-init",
+            "--annotations ${TARGETS[3]}",
+            "--image ${TARGETS[4]}",
+            f"--excluded {exclude_concepts}"
+        ]
+    )
+
+    sources = [
+        c["checkpoints_agg"][c["eval_method"]]["model"],
+        c["checkpoints_agg"]["round2"]["in_dataset_csv"],
+        c["checkpoints_agg"]["round2"]["indices_csv"],
+        c["checkpoints_agg"][c["eval_method"]]["in_dataset_csv"],
+        c["checkpoints_agg"][c["eval_method"]]["indices_csv"],
+    ]
+    targets = [
+        path_join(outdir, "ensemble1_preds.csv"),
+        path_join(outdir, "ensemble1_metrics.csv"),
+        path_join(outdir, "log_ensemble1_evaluation.txt"),
+        path_join(outdir, "ensemble1_annotations.csv"),
+        path_join(outdir, "ensemble1_roc.png"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))

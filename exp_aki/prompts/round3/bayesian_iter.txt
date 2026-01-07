@@ -1,0 +1,97 @@
+We are fitting a concept bottleneck model (CBM) to predict acute kidney injury (AKI) risk for patients undergoing anesthesia during surgery. The goal is to come up with a few meta-concepts that clinicians can use to easily risk-stratify patients for whether they are at high risk of developing with AKI within 7 days after surgery. As training data, we are using preoperative anesthesia notes to retrospectively extract predictive characteristics of the patients and their planned surgeries. A meta-concept has to be defined in terms of a yes/no question of the form "Does the note mention this patient having…?", "Does the note mention this patient taking…?", or "Does the note mention the surgery…?". We have {num_concepts_fixed} meta-concepts so far:
+{meta_concepts}
+
+To come up with the {num_concepts}th meta-concept, I have done the following: I first fit a CBM on the {num_concepts_fixed} existing meta-concepts. Then to figure out how to improve this {num_concepts_fixed}-concept CBM, I extracted a list of concepts that are present in each note, and then fit a linear regression model on the extracted concepts to predict the residuals of the {num_concepts_fixed}-concept CBM. These are the top extracted phrases describing the patient, the planned surgery, and/or the patient's medication status in the resulting residual model, in descending order of importance:
+
+{top_features_df}
+
+To interpret this residual model, a general rule of thumb is that an extracted concept with a large positive coefficient means that a high risk of AKI is positively associated with the concept being mentioned in the note, and an extracted concept with a negative coefficient means that a higher risk of AKI is negatively associated with the concept being mentioned in the note. 
+
+Given the residual model above, create cohesive candidates for the {num_concepts}th meta-concept. Be systematic and consider all the listed concepts in the residual model. Start from the most to the least predictive concept. For each concept, check if it matches an existing meta-concept or create a new candidate meta-concept. Work down the list, iterating through each concept. Clearly state each candidate meta-concept as a yes/no question.
+
+Suggestions for generating candidate meta-concepts: 
+* Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc).
+* Do not propose meta-concepts where you would expect over 95% agreement or disagreement with the {num_concepts_fixed} existing meta-concepts (e.g. "Does the note mention the patient having homelessness?" overlaps too much with "Does the note mention the patient having housing insecurity?").
+* The CBM should consider concepts from three categories: (i) characteristics of the patient, (ii) medications the patient is taking, and (iii) characteristics of the surgery.
+* Concepts must be granular and clinically precise. "High risk" or "Heart disease" is too vague. You must propose concepts that include clear examples or clinical definitions to guide annotation. Concepts are preferably written of the format "Does the note mention the patient having ..., e.g. ...?" For instance, phrase questions like "Does the note mention the patient having good exercise tolerance, e.g. having at least 5 METS of functional capacity or ability to climb two flights of stairs?" Similarly, concepts like fluid accumulation should clarify if it is referring to CHF exacerbation or ascites, such as through concept questions like "Does the note mention the patient having signs of cardiac volume overload, e.g. pulmonary edema, pitting edema, or jugular venous distension?" or "Does the note mention the patient having signs of hepatic fluid accumulation, e.g. ascites or significant abdominal distension?". Other examples from the clinician:
+  - Does the note mention the patient having severe gastroesophageal reflux, e.g. esophageal stricture, Barrett's esophagus, or a high risk of aspiration?
+  - Does the note mention the patient having normal pulmonary function, e.g. mentions of lungs being clear to auscultation bilaterally?
+  - Does the note mention the patient having signs of cardiac volume overload, e.g. pulmonary edema, pitting lower extremity edema, jugular venous distension (JVD), or a history of congestive heart failure exacerbations?
+  - Does the note mention the patient having signs of hepatic fluid accumulation, e.g. ascites, significant abdominal distension, or a history of requiring paracentesis?
+  - Does the note mention the patient having symptoms of decompensated Heart Failure, e.g. orthopnea, paroxysmal nocturnal dyspnea (PND), or a documented Ejection Fraction (EF) < 40%?
+  - Does the note mention the surgery having a high risk of major blood loss, e.g. open abdominal aortic aneurysm repair, liver transplantation, Whipple procedure, or anticipated blood loss (EBL) > 500mL?
+  - Does the note mention the patient having poor functional capacity, e.g. lower than 4 METs, inability to climb one flight of stairs, or inability to walk two blocks without shortness of breath?
+  - Does the note mention the patient having active or untreated Coronary Artery Disease (CAD), e.g. current angina/chest pain, a recent positive stress test, or significant stenosis that has not been revascularized?
+  - Does the note mention the patient having an active systemic infection, e.g. sepsis, bacteremia, fungemia, or a plan to administer therapeutic (non-prophylactic) antibiotics?
+  - Does the note mention the patient is currently an inpatient?
+  - Does the note mention the expected surgical duration is prolonged, in that it lasts longer than 3 to 4 hours?
+  - Does the note mention the surgery as having a high risk of needing a blood transfusion, e.g. cardiac surgery, major trauma surgery, or transplant surgery?
+  - Does the note mention the patient having bleeding diathesis or coagulopathy, e.g. Hemophilia, von Willebrand disease, liver coagulopathy (INR > 1.5), or active use of therapeutic anticoagulants (e.g., Warfarin, Apixaban)?
+  - Does the note mention the patient having low hemoglobin, e.g. anemia or hemoglobin < 10 g/dL?
+  - Does the note mention the patient having severe baseline respiratory compromise, e.g. the use of home oxygen, home CPAP/BiPAP for reasons other than sleep apnea, or a history of tracheostomy?
+  - Does the note mention the patient using of potentially nephrotoxic home medications, e.g. high-dose NSAIDs, ACE inhibitors, ARBs, chronic loop diuretics, or antibiotics like vancomycin or gentamicin?
+* Other categories of concepts clinical experts have suggested considering include:
+  - ​​Patient characteristics: fluid accumulation, abnormal/ normal pulmonary findings, heart failure symptoms, acid reflux, bleeding disorders, abnormal laboratory values, creatinine levels, multiple medications, active infection requiring antibiotics, functional capacity (e.g., METS score, good exercise tolerance)
+  - Pre-surgical status: location prior to surgery (ICU, hospital ward, or home), if the patient is intubated or needs supplemental oxygen
+  - Surgical characteristics: anticipated bleeding risk, expected surgical duration, need for blood transfusion during the procedure, certain types of surgery that may be lower or higher risk for developing AKI, emergency surgery
+  - Medication characteristics: multiple medications, nephrotoxic medications, antibiotics, insulin therapy
+
+Propose at least ten candidates. Answer with a list of JSONs, one per line:
+Finally, summarize all the generated candidates for the {num_concepts}-th meta-concept in a JSON. Merge any candidate meta-concepts that are essentially the same (where you would expect over 95% agreement) or essentially opposites (you would expect over 95% disagreement). In the JSON, include a list of comma-separated list of phrases that mean the same or opposite of each candidate meta-concept. The final JSON should have the following format:
+
+Answer in the following JSON format:
+{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the residual model concepts (from most to least predictive) and combined them with the feedback suggestions.”,
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "is_risk_factor": <bool: True if a yes answer to this concept question is a risk factor, False if a yes answer to this concept question is a protective factor>,
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    {
+      "concept": "<QUESTION 2>",
+      "is_risk_factor": <bool: True if a yes answer to this concept question is a risk factor, False if a yes answer to this concept question is a protective factor>,
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    ...
+    {
+      "concept": "<QUESTION 10>",
+      "is_risk_factor": <bool: True if a yes answer to this concept question is a risk factor, False if a yes answer to this concept question is a protective factor>,
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    }
+  ]
+}
+
+
+Example answer:
+{
+  "reasoning": "Step-by-step reasoning through the residual model concepts and feedback",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient having signs of hepatic fluid accumulation, e.g., ascites, significant abdominal distension, or need for paracentesis?",
+      "is_risk_factor": True,
+      "words": [“ascites”, “abdominal distension”]
+    },
+    {
+      "concept": "Does the note mention the patient having normal pulmonary function, e.g., documentation of lungs being clear to auscultation?",
+      "is_risk_factor": False,
+      "words": [“clear lungs”, “wheezing, “lungs clear”]
+    },
+    {
+      "concept": "Does the note mention the patient having poor functional capacity, e.g., having less than 4 METs and inability to climb stairs?",
+      "is_risk_factor": True,
+      "words": ["unable to climb stairs", "poor exercise tolerance", "< 4 METs"]
+    },
+    {
+      "concept": "Does the note mention the surgery having a high risk of major blood loss, e.g., open abdominal aortic aneurysm repair, liver transplantation, Whipple procedure, or anticipated blood loss (EBL) > 500mL?",
+      "is_risk_factor": True,
+      "words": ["open abdominal aortic aneurysm repair", "anticipated blood loss (EBL) > 500mL"]
+    },
+    {
+      "concept": "Does the note mention the patient using of potentially nephrotoxic home medications, e.g., high-dose NSAIDs, ACE inhibitors, ARBs, chronic loop diuretics, or antibiotics like vancomycin or gentamicin?",
+      "is_risk_factor": True,
+      "words": ["high-dose NSAIDs", "ACE inhibitors", "ARBs", "chronic loop diuretics", "vancomycin", "gentamicin"]
+    }
+    ...
+    ]
+}

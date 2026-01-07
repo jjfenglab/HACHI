@@ -1,0 +1,64 @@
+The goal is to come up with a concept bottleneck model (CBM) that extracts {num_concepts} meta-concepts from clinical notes from the electronic health record of pediatric patients admitted to the emergency room to predict risk of having a traumatic brain injury (TBI).  A meta-concept is a binary feature extractor defined by a yes/no question of the form "Does the note mention this patient having…?". We have {num_concepts_fixed} meta-concepts so far:
+{meta_concepts}
+
+To come up with the {num_concepts}th meta-concept, I have done the following: I first fit a CBM on the {num_concepts_fixed} existing meta-concepts. Then to figure out how to improve this {num_concepts_fixed}-concept CBM, I first extracted a list of concepts that are present in each note, and then fit a linear regression model on the extracted concepts to predict the residuals of the {num_concepts_fixed}-concept CBM. These are the top extracted concepts in the resulting residual model, in descending order of importance:
+
+{top_features_df}
+
+To interpret this residual model, a general rule of thumb is that an extracted concept with a large positive coefficient means that a high risk of TBI  is positively associated with the concept being mentioned in the note, and an extracted concept with a negative coefficient means that a higher risk of TBI is negatively associated with the concept being mentioned in the note. 
+
+Given the residual model above, create cohesive candidates for the {num_concepts}th meta-concept. Be systematic and consider all the listed concepts in the residual model. Start from the most to the least predictive concept. For each concept, check if it matches an existing meta-concept or create a new candidate meta-concept. Work down the list, iterating through each concept. Clearly state each candidate meta-concept as a yes/no question.
+
+Suggestions for generating candidate meta-concepts: 
+* Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc).
+* Do not propose meta-concepts where you would expect over 95% agreement or disagreement with the {num_concepts_fixed} existing meta-concepts (e.g. "Does the note mention the patient having homelessness?" overlaps too much with "Does the note mention the patient having housing insecurity?").
+* Rather than using concepts that depend on the status of the patient having neurological assessments, propose concepts that are characteristics of the patient themself.
+* Some concepts like Glasgow Coma Scale score only make sense if a patient is at least 2 years old, or have different interpretations if the patient is above or below 2 years old. For such questions, write them as a conjunction, e.g. "Does the note mention the patient having a Glasgow Coma Scale score of 15 and being at least 2 years old?"
+* Concepts that clinical experts have suggested include those relating to loss of consciousness, cognitive delays, history of traumatic brain injury, vomiting, headaches, hematoma characteristics
+* Do NOT propose concepts like "Does the note mention the patient having a low risk of TBI?" or "Does the note mention the patient having a high risk of TBI?" Our goal is to learn specific risk factors or protective factors of TBI.
+
+Finally, summarize all the generated candidates for the {num_concepts}-th meta-concept in a JSON. Merge any candidate meta-concepts that are essentially the same (where you would expect over 95% agreement) or essentially opposites (you would expect over 95% disagreement). In the JSON, include a list of comma-separated list of phrases that mean the same or opposite of each candidate meta-concept. Propose at least ten candidates. The final JSON should have the following format:
+
+Answer with a list of {num_meta_concepts} JSONs, one per line:
+{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the residual model concepts (from most to least predictive).”,
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    {
+      "concept": "<QUESTION 2>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    ...
+    {
+      "concept": "<QUESTION {num_meta_concepts}>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    }
+  ]
+}
+
+
+Example answer:
+{
+  "reasoning": "Step-by-step reasoning through the residual model concepts",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient experiencing head trauma?",
+      "words": ["head injury", "skull trauma", "cranial damage"]
+    },
+    {
+      "concept": "Does the note mention the patient experiencing loss of consciousness?",
+      "words": ["LOC", "fainting", "unresponsive", "syncope"]
+    },
+    {
+      "concept": "Does the note mention the patient having a cognitive delay?",
+      "words": ["cognitive impairment", "intellectual disability", "developmental delay"]
+    },
+    {
+      "concept": "Does the note mention the patient having altered mental status?",
+      "words": ["mental status changes", "altered level of consciousness", "confusion", "disorientation", ]
+    }
+    ]
+}

@@ -1,0 +1,38 @@
+You are extracting clinical factors from emergency room medical notes.  Output a list of descriptors that summarizes the patient case (such as aspects of injury, demographics, symptoms, SDOH, etc).  For each descriptor, also list as many descriptors that mean the same thing or generalizations of the descriptor.  All descriptors, synonyms, and generalizations cannot be more than three words. Output as a JSON in the following format. 
+
+For each factor, provide:
+1. The primary descriptor (exact or paraphrased from the note)
+2. Synonyms or alternative phrasings
+3. Broader generalizations that capture similar concepts
+
+Requirements:
+- Each descriptor should be ≤3 words
+- Focus on clinically relevant factors
+- Include both specific terms and generalizable concepts
+- Separate items with commas
+
+Note(s):
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the medical note text.
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Primary descriptor, Synonym1, Synonym2, Broader category",
+        "Primary descriptor, Alternative phrasing, More general concept",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Crowded residence, Overcrowded living, Constrained environment, Environmental risk",
+        "Cervical strain, Neck pain, Muscle spasm",
+        "Physical assault, Blunt trauma, Injury infliction",
+        ...
+    ]
+}

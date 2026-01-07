@@ -1,0 +1,44 @@
+You are extracting clinical descriptors of a pediatric patient from emergency room medical notes that may influence their risk of being diagnosed with traumatic brain injury (TBI).  Focus entirely on factors explicitly mentioned in the notes. Do not infer or add details unless explicitly stated.
+
+Extract factors that may:
+- Increase TBI risk, be specific and detailed (e.g., substance use, prior head injuries)
+- Decrease TBI risk, be specific and detailed (e.g., protective equipment use, medication compliance)
+- Indicate TBI severity or complications, be specific and detailed (e.g., neurological symptoms, cognitive changes)
+
+For each factor, provide:
+1. The primary descriptor (exact or paraphrased from the note)
+2. Synonyms or alternative phrasings
+3. Broader generalizations that capture similar concepts
+
+Requirements:
+- Each descriptor should be ≤3 words
+- The descriptor should state distinguishing features.
+- List specific terms, synonyms, and increasingly general concepts. However, do not state overly general concepts like "protective factor", "risk factor", "low risk", or "high risk" because we are using these terms to brainstorm/learn specific factors that clinicians can use to predict TBI risk.
+- Separate items with commas
+
+
+Note(s):
+"{note}"
+
+Do not infer or fabricate details. Base all responses strictly on the medical note text.
+
+Output Format:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Primary descriptor, Synonym1, Synonym2, Broader category",
+        "Primary descriptor, Alternative phrasing, More general concept",
+        ...
+    ]
+}
+
+Examples:
+{
+    "reasoning": "Describe any reasoning here",
+    "keyphrases": [
+        "Crowded residence, Overcrowded living, Constrained environment, Environmental risk",
+        "Cervical strain, Neck pain, Muscle spasm",
+        "Physical assault, Blunt trauma, Injury infliction",
+        ...
+    ]
+}

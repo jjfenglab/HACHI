@@ -1,0 +1,46 @@
+We are fitting a concept bottleneck model to predict some clinical outcome "Y" for pediatric patients admitted to emergency room. The goal is to come up with {num_meta_concepts} meta-concepts to extract from clinical notes that maximize the accuracy of the concept bottleneck model for predicting whether a patient will have a higher risk of this clinical outcome "Y".
+
+The top words most associated with the clinical outcome were estimated using a simple logistic regression model with tf-idf features. Based on the top words, come up with {num_meta_concepts} meta-concepts. A meta-concept has to be defined in terms of a yes/no question, e.g. "Does the note mention this patient having a fall?". Pick meta-concepts that are as specific as possible, without being too broad.
+
+Suggestions for generating candidate meta-concepts: Do not propose meta-concepts that are simply a union of two different concepts (e.g. "Does the note mention this patient having an infection or being elderly?" is not allowed), questions with answers that are almost always a yes (e.g. the answer to "Does the note mention this patient being hospitalized?" is almost always yes), or questions where the yes/no options are not clearly defined (e.g. "Does the note mention this patient experiencing difficulty?" is not clearly defined because difficulty may mean financial difficulty, physical difficulties, etc).
+
+Words with top coefficients:
+
+{top_features_df}
+
+Propose at least {max_meta_concepts} candidates in the following JSON format:
+{
+  "reasoning": "Step-by-step explanation of how you systematically worked through the model concepts (from most to least predictive).”,
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    {
+      "concept": "<QUESTION 2>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    },
+    ...
+    {
+      "concept": "<QUESTION {max_meta_concepts}>",
+      "words": ["<SYNONYM/ANTONYM 1>", "<SYNONYM/ANTONYM 2>", "<SYNONYM/ANTONYM 3>"]
+    }
+  ]
+}
+
+Example answer:
+{
+  "reasoning": "Step-by-step reasoning through the model concepts",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient experiencing head trauma?",
+      "words": ["head injury", "skull trauma", "cranial damage"]
+    },
+    {
+      "concept": “Does the note mention loss of consciousness?”
+      "words": ["LOC", "fainting, unresponsive"]
+    },
+    ...
+    ]
+}
+
