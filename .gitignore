@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# HACHI-specific
+_output/
+*.db
+*.duckdb
+*.pkl
+*.csv
+!data/demo_patients.csv
+cache.db
+*.sconsign*
+.sconsign*
+.DS_Store
+CLAUDE.md
+.claude/
+.scratch/
+.cursor/
