@@ -1,2 +1,3 @@
 # HACHI
 Human-AI Co-design for Clinical Prediction Models
+<img width="1017" height="307" alt="Screenshot 2026-01-08 at 6 12 33 AM" src="https://github.com/user-attachments/assets/9055db26-1c3f-4420-a37a-b1c08f3a7197" />
