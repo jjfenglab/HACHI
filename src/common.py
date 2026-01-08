@@ -7,19 +7,17 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler, label_binarize
 
 sys.path.append(os.getcwd())
 sys.path.append("llm-api-main")
-from lab_llm.dataset import ImageDataset, TextDataset
+from lab_llm.dataset import TextDataset
 from lab_llm.llm_api import LLMApi
 
-from src.llm_response_types import ExtractResponseList, GroupedExtractResponses
-from src.logistic import LogisticRegressionTorch
+from src.llm_response_types import ExtractResponseList
 
 TABULAR_PREFIX = "Tabular feature: "
 
@@ -179,20 +177,6 @@ def train_LR(
     if penalty is None:
         final_model = LogisticRegression(penalty=None, random_state=seed)
         final_model.fit(X_train, y_train, sample_weight=sample_weight)
-    # elif penalty == "l1":
-    #     param_grid = {"lambd": [0.01, 0.001, 0.0001, 1e-5], "num_epochs": [7000]}
-    #     model = GridSearchCV(
-    #         estimator=LogisticRegressionTorch(seed=seed), param_grid=param_grid, **args
-    #     )
-    #     model.fit(X_train, y_train)
-    #     print("CV SCORES ACC/AUC", model.best_score_)
-    #     logging.info("CV SCORES best_score_ %s", model.best_score_)
-    #     logging.info("CV RESULTS %s", model.cv_results_)
-    #     final_model = model.best_estimator_
-    #     logging.info(
-    #         "NUM NONZERO 1e-2 %d",
-    #         np.sum(~np.isclose(np.abs(final_model.coef_).max(axis=0), 0, atol=1e-2)),
-    #     )
     elif penalty == "l1_sklearn":
         final_model = LogisticRegressionCV(
             max_iter=10000,
@@ -268,19 +252,12 @@ def train_LR_max_features(
     best_C = None
     final_model = None
 
-    # rf = RandomForestClassifier()
-    # rf.fit(X_train, y_train, sample_weight=sample_weight)
-    # test_auc, _ = get_auc_and_probs(rf, X_test, y_test, sample_weight=test_weight)
-    # print("RF test auc", test_auc)
-
     for C in C_candidates:
         model = LogisticRegression(
             penalty="l1", solver="saga", C=C, random_state=seed, max_iter=1000
         )
         model.fit(X_train, y_train, sample_weight=sample_weight)
-        # test_auc, _ = get_auc_and_probs(model, X_test, y_test, test_weight=test_weight)
         n_features = np.sum(model.coef_ != 0)
-        # print("LR", C, n_features, test_auc)
 
         if n_features <= num_meta_concepts:
             best_C = C
@@ -325,8 +302,6 @@ def extract_features_by_llm_grouped(
     batch_size=1,
     batch_concept_size=20,
     max_new_tokens=5000,
-    is_image=False,
-    group_size: int = 1,
     max_retries: int = 1,
     max_section_length: int = None,
     sentence_column: str = "sentence",
@@ -365,78 +340,22 @@ def extract_features_by_llm_grouped(
         logging.debug(prompt_template)
 
         logging.info(f"dset_train.shape[0] {dset_train.shape[0]}")
-        if group_size > 1:
-            # group together observations for extractions
-            obs_group_idxs = []
-            if is_image:
-                group_ids = np.arange(dset_train.shape[0])
-                image_paths_list = []
-                for i in range(0, dset_train.shape[0], group_size):
-                    group_df = dset_train.image_path.iloc[i : i + group_size]
-                    image_paths_list.append(group_df.tolist())
-                    obs_group_idxs.append([j for j in range(i, i + group_df.shape[0])])
+        group_ids, sentences = split_sentences_by_id(
+            dset_train, max_section_length, sentence_column
+        )
+        prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
+        dataset = TextDataset(prompts)
 
-                dataset = ImageGroupDataset(
-                    image_paths_list, prompt_template=prompt_template
-                )
-            else:
-                raise NotImplementedError(
-                    "have not yet implemented grouped-extraction of text data"
-                )
-
-            grouped_llm_outputs = asyncio.run(
-                llm.get_outputs(
-                    dataset,
-                    batch_size=batch_size,
-                    max_new_tokens=max_new_tokens,
-                    is_image=is_image,
-                    temperature=0,
-                    max_retries=max_retries,
-                    response_model=GroupedExtractResponses,
-                )
+        llm_outputs = asyncio.run(
+            llm.get_outputs(
+                dataset,
+                batch_size=batch_size,
+                max_new_tokens=max_new_tokens,
+                temperature=0,
+                max_retries=max_retries,
+                response_model=ExtractResponseList,
             )
-            logging.debug(
-                f"grouped_llm_outputs {len(grouped_llm_outputs)} {dset_train.shape[0]}"
-            )
-            # ungroup responses
-            llm_outputs = [None] * dset_train.shape[0]
-            for group_obs_idxs, grouped_output in zip(
-                obs_group_idxs, grouped_llm_outputs
-            ):
-                if grouped_output is not None:
-                    for j, extraction in enumerate(
-                        grouped_output.all_extractions[: len(group_obs_idxs)]
-                    ):
-                        llm_outputs[group_obs_idxs[j]] = extraction
-                else:
-                    logging.info(
-                        f"warning: llm output was missing for idxs {group_obs_idxs}"
-                    )
-            logging.debug(f"llm_outputs {len(llm_outputs)} {dset_train.shape[0]}")
-        else:
-            if is_image:
-                group_ids = np.arange(dset_train.shape[0])
-                dataset = ImageDataset(dset_train.image_path.tolist(), prompt_template)
-            else:
-                group_ids, sentences = split_sentences_by_id(
-                    dset_train, max_section_length, sentence_column
-                )
-                prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
-                dataset = TextDataset(
-                    prompts,
-                )
-
-            llm_outputs = asyncio.run(
-                llm.get_outputs(
-                    dataset,
-                    batch_size=batch_size,
-                    max_new_tokens=max_new_tokens,
-                    is_image=is_image,
-                    temperature=0,
-                    max_retries=max_retries,
-                    response_model=ExtractResponseList,
-                )
-            )
+        )
 
         # extract responses
         extracted_llm_outputs = _collate_extractions_by_group(
@@ -468,8 +387,6 @@ async def extract_features_by_llm_grouped_async(
     batch_size=1,
     batch_concept_size=20,
     max_new_tokens=5000,
-    is_image=False,
-    group_size: int = 1,
     max_retries: int = 1,
     max_section_length: int = None,
     sentence_column: str = "sentence",
@@ -514,78 +431,20 @@ async def extract_features_by_llm_grouped_async(
         logging.debug(prompt_template)
 
         logging.info(f"dset_train.shape[0] {dset_train.shape[0]}")
-        if group_size > 1:
-            # group together observations for extractions
-            obs_group_idxs = []
-            if is_image:
-                group_ids = np.arange(dset_train.shape[0])
-                image_paths_list = []
-                for i in range(0, dset_train.shape[0], group_size):
-                    group_df = dset_train.image_path.iloc[i : i + group_size]
-                    image_paths_list.append(group_df.tolist())
-                    obs_group_idxs.append([j for j in range(i, i + group_df.shape[0])])
+        group_ids, sentences = split_sentences_by_id(
+            dset_train, max_section_length, sentence_column
+        )
+        prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
+        dataset = TextDataset(prompts)
 
-                dataset = ImageGroupDataset(
-                    image_paths_list, prompt_template=prompt_template
-                )
-            else:
-                raise NotImplementedError(
-                    "have not yet implemented grouped-extraction of text data"
-                )
-
-            # Use await instead of asyncio.run()
-            grouped_llm_outputs = await llm.get_outputs(
-                dataset,
-                batch_size=batch_size,
-                max_new_tokens=max_new_tokens,
-                is_image=is_image,
-                temperature=0,
-                max_retries=max_retries,
-                response_model=GroupedExtractResponses,
-            )
-            logging.debug(
-                f"grouped_llm_outputs {len(grouped_llm_outputs)} {dset_train.shape[0]}"
-            )
-            # ungroup responses
-            llm_outputs = [None] * dset_train.shape[0]
-            for group_obs_idxs, grouped_output in zip(
-                obs_group_idxs, grouped_llm_outputs
-            ):
-                if grouped_output is not None:
-                    for j, extraction in enumerate(
-                        grouped_output.all_extractions[: len(group_obs_idxs)]
-                    ):
-                        llm_outputs[group_obs_idxs[j]] = extraction
-                else:
-                    logging.info(
-                        f"warning: llm output was missing for idxs {group_obs_idxs}"
-                    )
-            logging.debug(f"llm_outputs {len(llm_outputs)} {dset_train.shape[0]}")
-        else:
-            if is_image:
-                group_ids = np.arange(dset_train.shape[0])
-                dataset = ImageDataset(dset_train.image_path.tolist(), prompt_template)
-            else:
-                group_ids, sentences = split_sentences_by_id(
-                    dset_train, max_section_length, sentence_column
-                )
-                prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
-                dataset = TextDataset(
-                    prompts,
-                )
-
-            loop = asyncio.get_running_loop()
-            loop.set_debug(True)
-            # Use await instead of asyncio.run()
-            llm_outputs = await llm.get_outputs(
-                dataset,
-                batch_size=batch_size,
-                max_new_tokens=max_new_tokens,
-                is_image=is_image,
-                temperature=0,
-                max_retries=max_retries,
-                response_model=ExtractResponseList,
-            )
+        llm_outputs = await llm.get_outputs(
+            dataset,
+            batch_size=batch_size,
+            max_new_tokens=max_new_tokens,
+            temperature=0,
+            max_retries=max_retries,
+            response_model=ExtractResponseList,
+        )
 
         # extract responses
         extracted_llm_outputs = _collate_extractions_by_group(
