@@ -189,7 +189,7 @@ class GreedyConceptSelector:
         )
 
     def query_for_new_cand(
-        self, iter_llm_prompt, top_feat_names, times_to_retry=1, max_new_tokens=5000
+        self, iter_llm_prompt, top_feat_names, max_new_tokens=5000
     ):
         """
         Query LLM for new candidate concepts.
@@ -197,7 +197,6 @@ class GreedyConceptSelector:
         Args:
             iter_llm_prompt: Iteration prompt string
             top_feat_names: Top feature names
-            times_to_retry: Number of retry attempts (unused)
             max_new_tokens: Maximum tokens for LLM response
 
         Returns:

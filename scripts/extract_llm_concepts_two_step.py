@@ -19,7 +19,6 @@ sys.path.append(os.getcwd())
 
 import src.common as common
 from src.llm_response_types import (
-    ConceptCardList,
     ProtoConceptExtract,
     ProtoConceptExtractWithEvidence,
 )

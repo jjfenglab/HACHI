@@ -1,26 +1,19 @@
-import time
-import re
-import os
-import sys
-import json
 import logging
-import argparse
-import pandas as pd
-import numpy as np
+import os
 import pickle
-from tqdm import tqdm
-import asyncio
-import scipy
+import sys
+import time
 from typing import List, Optional
 
-from sklearn.metrics import roc_auc_score
+import numpy as np
+import pandas as pd
+import scipy
 from sklearn.linear_model import LogisticRegression
-from scipy.stats import multivariate_normal
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 sys.path.append('llm-api-main')
 from lab_llm.llm_api import LLMApi
-from src.utils import convert_to_json, convert_to_list_of_jsons
 from src.training_history import TrainingHistory
 import src.common as common
 from src.llm_response_types import PriorResponse, CandidateConcepts
@@ -558,7 +551,7 @@ class ConceptLearnerModel:
             for w in feat_names]
         return X_features[:, keep_mask], feat_names[keep_mask]
     
-    def query_for_new_cand(self, iter_llm_prompt, top_feat_names, times_to_retry=1, max_new_tokens=5000):
+    def query_for_new_cand(self, iter_llm_prompt, top_feat_names, max_new_tokens=5000):
         llm_response = self.llm_iter.get_output(iter_llm_prompt, max_new_tokens=max_new_tokens, response_model=CandidateConcepts)
         candidate_concept_dicts = llm_response.to_dicts(default_prior=self.default_prior)
         candidate_concept_dicts += [{

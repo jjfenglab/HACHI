@@ -18,7 +18,6 @@ from src.llm_response_types import CandidateConcepts
 
 from . import data_operations
 from .config import EnsembleConfig
-from .evidence_enhancement import enhance_concept_prompt_with_summaries
 from .extraction_utils import ExtractionHandler
 from .model_utils import generate_prior_prompt
 from .text_processing import get_word_count_data

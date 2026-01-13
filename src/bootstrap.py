@@ -4,8 +4,7 @@ Bootstraps gamma for the concept learner model
 
 import torch
 import numpy as np
-from torch.utils.data import TensorDataset, DataLoader, Subset
-from src.concept_learner_model import ConceptKernelLearner
+from torch.utils.data import TensorDataset, Subset
 
 class Bootstrap():
     def __init__(self,
