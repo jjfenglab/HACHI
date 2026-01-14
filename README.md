@@ -1,12 +1,31 @@
-# Human+Agent Co-design framework for Healthcare Instruments (HACHI)
+<h1 align="center"> 🤖🤝🧑🏾 HACHI 🧑🏻🤝🤖 </h1>
+<p align="center"> <b>Human-AI Co-design for Clinical Prediction Models</b>  (<a href="">Feng et al. 2026, Under review</a>). 
+</p>
 
-Submitted manuscript: "Human-AI Co-design for Clinical Prediction Models" by Jean Feng, Avni Kothari, Patrick Vossler, Andrew Bishara, Lucas Zier, Newton Addo, Aaron Kornblith, Yan Shuo Tan, Chandan Singh
+<p align="center">
+  <img src="https://img.shields.io/badge/license-mit-green.svg">
+  <img src="https://img.shields.io/badge/python-3.7+-blue">
+</p>  
 
 <img width="1017" height="307" alt="HACHI Method Overview" src="https://github.com/user-attachments/assets/9055db26-1c3f-4420-a37a-b1c08f3a7197" />
 
 ---
 
-HACHI is a framework for developing interpretable clinical prediction models through iterative human-AI collaboration. It combines the reasoning capabilities of large language models with clinical domain expertise to create concept-based models that are both accurate and interpretable.
+HACHI is a framework for developing interpretable clinical prediction models through iterative human-AI collaboration. It combines the reasoning capabilities of LLMs with clinical domain expertise to create models that are both accurate and interpretable.
+
+---
+
+## Quick Start
+
+The fastest way to understand HACHI is through the [demo notebook](https://github.com/jjfenglab/HACHI/blob/main/notebooks/demo.ipynb):
+
+The demo walks through:
+- Generating synthetic clinical notes
+- Running the HACHI agent loop
+- Reviewing and interpreting the learned concepts
+- Simulating human feedback rounds
+
+*Note: The demo includes pre-computed outputs so it can run without API access.*
 
 ---
 
@@ -72,24 +91,6 @@ ANTHROPIC_API_KEY=your-api-key-here
 ```
 
 The framework uses the `llm-api` package for LLM interactions. See the [llm documentation](https://github.com/jjfenglab/llm-api) for additional configuration options.
-
----
-
-## Quick Start
-
-The fastest way to understand HACHI is through the demo notebook:
-
-```bash
-jupyter notebook notebooks/demo.ipynb
-```
-
-The demo walks through:
-- Generating synthetic clinical notes
-- Running the HACHI agent loop
-- Reviewing and interpreting the learned concepts
-- Simulating human feedback rounds
-
-*Note: The demo includes pre-computed outputs so it can run without API access.*
 
 ---
 
