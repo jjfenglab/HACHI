@@ -1,5 +1,5 @@
 <h1 align="center"> 🤖🤝🧑🏾 HACHI 🧑🏻🤝🤖 </h1>
-<p align="center"> <b>Human-AI Co-design for Clinical Prediction Models</b>  (<a href="">Feng et al. 2026, Under review</a>). 
+<p align="center"> <b>Human-AI Co-design for Clinical Prediction Models</b>  (<a href="https://arxiv.org/abs/2601.09072">Feng et al. 2026, Under review</a>). 
 </p>
 
 <p align="center">
@@ -248,11 +248,14 @@ HACHI/
 If you use HACHI in your research, please cite:
 
 ```bibtex
-@article{hachi2026,
-  title={Human-AI Co-design for Interpretable Clinical Prediction Models},
-  author={},
-  journal={},
-  year={2026}
+@misc{feng2026hachi,
+      title={Human-AI Co-design for Clinical Prediction Models}, 
+      author={Jean Feng and Avni Kothari and Patrick Vossler and Andrew Bishara and Lucas Zier and Newton Addo and Aaron Kornblith and Yan Shuo Tan and Chandan Singh},
+      year={2026},
+      eprint={2601.09072},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2601.09072}, 
 }
 ```
 
