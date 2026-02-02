@@ -15,6 +15,7 @@ class StandaloneConceptAnalysisInterface {
         this.perPage = 20;  // Reduced from 50 to prevent overflow
         this.currentSearch = '';
         this.partitionFilter = 'all';
+        this.outcomeFilter = 'all';
         this.conceptFilter = '';
         this.selectedObservation = null;
         this.annotations = [];
@@ -233,7 +234,17 @@ class StandaloneConceptAnalysisInterface {
                 this.loadObservations();
             });
         }
-        
+
+        // Outcome filter
+        const outcomeFilter = document.getElementById('outcomeFilter');
+        if (outcomeFilter) {
+            outcomeFilter.addEventListener('change', () => {
+                this.outcomeFilter = outcomeFilter.value;
+                this.currentPage = 1;
+                this.loadObservations();
+            });
+        }
+
         // Concept filter
         const conceptFilter = document.getElementById('conceptFilter');
         if (conceptFilter) {
@@ -308,7 +319,7 @@ class StandaloneConceptAnalysisInterface {
                         <div class="feedback-badge">2</div>
                         <div class="step-number">2</div>
                         <div class="step-content">
-                            <h6>Hospital Course Summary</h6>
+                            <h6>LLM-extracted Keyphrases</h6>
                             <p>LLM generates structured summaries focusing on events and factors that may influence length of stay</p>
                         </div>
                     </div>
@@ -1642,7 +1653,14 @@ class StandaloneConceptAnalysisInterface {
                 if (this.partitionFilter === 'train' && row.partition !== 'train') return false;
                 if (this.partitionFilter === 'test' && row.partition !== 'test') return false;
             }
-            
+
+            // Outcome filter (y column)
+            if (this.outcomeFilter !== 'all') {
+                const outcome = parseInt(row.y);
+                if (this.outcomeFilter === '0' && outcome !== 0) return false;
+                if (this.outcomeFilter === '1' && outcome !== 1) return false;
+            }
+
             // Concept filter
             if (this.conceptFilter && row[this.conceptFilter] !== undefined) {
                 if (row[this.conceptFilter] <= 0.5) return false;
@@ -1683,23 +1701,30 @@ class StandaloneConceptAnalysisInterface {
     }
     
     renderObservationMetadata(obs) {
-        const displayColumns = ['parent_diagnosis_code', 'length_of_stay_days', 'global_median_los'];
-        return displayColumns
+        const displayColumns = this.metadataColumns || [];
+        const availableColumns = displayColumns.filter(col => obs[col] !== undefined);
+
+        if (availableColumns.length === 0) {
+            return '<span class="text-muted">No metadata</span>';
+        }
+
+        return availableColumns
             .map(col => {
-                if (obs[col] !== undefined) {
-                    const displayName = this.config.ui.column_display_names?.[col] || col;
-                    let value = obs[col];
-                    
-                    // Round LOS values to 2 decimal places
-                    if (col === 'length_of_stay_days' || col === 'global_median_los') {
-                        value = parseFloat(value).toFixed(2);
-                    }
-                    
-                    return `${displayName}: ${value}`;
+                const displayName = this.config.ui.column_display_names?.[col] || col;
+                let value = obs[col];
+
+                // Format numbers
+                if (typeof value === 'number') {
+                    value = Number.isInteger(value) ? value : value.toFixed(2);
                 }
-                return '';
+
+                // Format dates
+                if (col.includes('date') && typeof value === 'string') {
+                    value = new Date(value).toLocaleDateString();
+                }
+
+                return `${displayName}: ${value}`;
             })
-            .filter(s => s)
             .join(' | ');
     }
     
@@ -1914,36 +1939,43 @@ class StandaloneConceptAnalysisInterface {
     
     updateAssignedConcepts(obs) {
         if (!this.config.features.show_concepts) return;
-        
+
         this.initializations.forEach(init => {
             const container = document.getElementById(`conceptsList-${init.id}`);
             if (!container) return;
-            
+
             let html = '';
             const assignedCol = `assigned_concepts_${init.concept_prefix}`;
             const assignedConcepts = obs[assignedCol] ? obs[assignedCol].split(',').map(c => c.trim()) : [];
-            
+
             init.concepts.forEach((concept, index) => {
                 const colName = `${init.concept_prefix}_concept_${index}`;
                 const value = obs[colName] || 0;
                 const isAssigned = value > 0.5;
-                
+
+                // Get coefficient for this concept
+                const coefficient = init.coefficients ? init.coefficients[concept] : null;
+                const coefficientText = coefficient !== null ? coefficient.toFixed(3) : 'N/A';
+
                 html += `
                     <div class="concept-card ${isAssigned ? 'active' : ''}">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
                             <span>${concept}</span>
                             <span class="badge ${isAssigned ? 'bg-success' : 'bg-secondary'}">
                                 ${value.toFixed(2)}
                             </span>
                         </div>
+                        <div class="small text-muted">
+                            Coefficient: ${coefficientText}
+                        </div>
                     </div>
                 `;
             });
-            
+
             if (html === '') {
                 html = '<div class="text-muted">No concepts for this initialization</div>';
             }
-            
+
             container.innerHTML = html;
         });
     }

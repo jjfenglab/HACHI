@@ -57,7 +57,7 @@ class PriorResponse(BaseModel):
 
 class CandidateConcept(BaseModel):
     concept: str = Field(description="Concept defined as a yes/no question")
-    is_risk_factor: bool = Field(description="whether the coef should be positive")
+    # is_risk_factor: bool = Field(description="whether the coef should be positive")
     words: List[str] = Field(description="Words that are synonyms or antonyms")
 
 
