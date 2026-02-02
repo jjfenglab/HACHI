@@ -102,8 +102,8 @@ class FeatureExtractionManager:
                 batch_size=self.config.training.batch_size,
                 batch_concept_size=self.config.training.batch_concept_size,
                 max_new_tokens=max_new_tokens,
-                is_image=self.config.data.is_image,
-                group_size=self.config.training.batch_obs_size,
+                # is_image=self.config.data.is_image,
+                # group_size=self.config.training.batch_obs_size,
                 max_section_length=self.config.data.max_section_length,
                 sentence_column=self.config.data.text_summary_column,
             )
