@@ -46,6 +46,16 @@ def load_concepts(concepts_csv_path: str) -> List[str]:
     return df.iloc[:, 0].tolist()
 
 
+def load_concepts_with_coefficients(concepts_csv_path: str) -> List[Tuple[str, float]]:
+    """Load concept names and coefficients from CSV file."""
+    df = pd.read_csv(concepts_csv_path)
+    assert "concept" in df.columns, f"CSV must have 'concept' column"
+    assert "coef" in df.columns, f"CSV must have 'coef' column"
+
+    # Return list of (concept, coefficient) tuples
+    return list(zip(df["concept"].tolist(), df["coef"].tolist()))
+
+
 def compute_model_specific_coefficients(
     init_path: str,
     train_data_df: pd.DataFrame,
@@ -705,13 +715,14 @@ def process_initialization(
     data_df: pd.DataFrame,
     id_column: str,
     use_concept_cards: bool = False,
-) -> Tuple[pd.DataFrame, List[str], Optional[dict]]:
+) -> Tuple[pd.DataFrame, List[str], Dict[str, float], Optional[dict]]:
     """
     Process a single initialization's data.
 
     Returns:
         Updated dataframe with concept columns
         List of concept names
+        Dictionary mapping concept names to coefficients
         Training history data
     """
     # Load extraction data
@@ -721,17 +732,19 @@ def process_initialization(
 
     if not os.path.exists(extraction_path):
         print(f"Warning: No extraction file found for {init_name} at {init_path}")
-        return data_df, []
+        return data_df, [], {}, None
 
     extractions = load_extractions(extraction_path)
 
-    # Load concept names
-    concepts_path = os.path.join(init_path, "concepts.csv")
+    # Load concept names and coefficients
+    concepts_path = os.path.join(init_path, "training_history_concepts.csv")
     if not os.path.exists(concepts_path):
         print(f"Warning: No concepts file found for {init_name} at {init_path}")
-        return data_df, []
+        return data_df, [], {}, None
 
-    concept_names = load_concepts(concepts_path)
+    concepts_with_coefs = load_concepts_with_coefficients(concepts_path)
+    concept_names = [c[0] for c in concepts_with_coefs]
+    concept_coefficients = {c[0]: c[1] for c in concepts_with_coefs}
 
     # Create concept columns for this initialization
     for i, concept_name in enumerate(concept_names):
@@ -771,12 +784,12 @@ def process_initialization(
     # Load training history
     training_history = load_training_history(init_path, use_concept_cards)
 
-    return data_df, concept_names, training_history
+    return data_df, concept_names, concept_coefficients, training_history
 
 
 def create_standalone_config(
     original_config: dict,
-    initializations: List[Tuple[str, List[str], Optional[dict]]],
+    initializations: List[Tuple[str, List[str], Dict[str, float], Optional[dict]]],
     prompts_data: dict,
     output_path: str,
     use_concept_cards: bool = False,
@@ -787,12 +800,13 @@ def create_standalone_config(
     init_info = []
     training_histories = {}
 
-    for i, (init_name, concept_names, training_history) in enumerate(initializations):
+    for i, (init_name, concept_names, concept_coefficients, training_history) in enumerate(initializations):
         init_data = {
             "id": i + 1,
             "name": f"Model {i + 1}",
             "concept_prefix": init_name,
             "concepts": concept_names,
+            "coefficients": concept_coefficients,
         }
 
         # Add training history if available
@@ -814,29 +828,17 @@ def create_standalone_config(
 
     standalone_config = {
         "ui": {
-            "title": original_config.get("ui", {}).get(
-                "title", "Clinical Data Analysis"
-            ),
-            "encounter_display_name": original_config.get("ui", {}).get(
-                "encounter_display_name", "Encounter"
-            ),
+            "title": original_config["ui"]["title"],
+            "encounter_display_name": original_config["ui"]["encounter_display_name"],
             "column_display_names": original_config.get("ui", {}).get(
                 "column_display_names", {}
             ),
         },
         "dataset": {
-            "id_column": original_config.get("dataset", {}).get(
-                "id_column", "pat_enc_csn_id_surrogate"
-            ),
-            "note_column": "sentence",  # From llm_summaries.csv
-            "summary_column": "llm_summary",
-            "metadata_columns": [
-                "pat_id_surrogate",
-                "parent_diagnosis_code",
-                "length_of_stay_days",
-                "global_median_los",
-                "y",
-            ],
+            "id_column": original_config["dataset"]["id_column"],
+            "note_column": original_config["dataset"]["note_column"],
+            "summary_column": original_config["dataset"]["summary_column"],
+            "metadata_columns": original_config["dataset"]["metadata_columns"],
         },
         "initializations": init_info,
         "features": {
@@ -867,7 +869,7 @@ def export_example_summaries(summaries_csv_path: str, output_path: str) -> None:
 
     # Expected columns: id, note, summary
     # Optional columns: length_of_stay, outcome
-    required_columns = ["pat_enc_csn_id_surrogate", "sentence", "llm_summary"]
+    required_columns = ["pat_enc_csn_id_surrogate", "sentence", "llm_output"]
     missing_columns = [col for col in required_columns if col not in df.columns]
 
     if missing_columns:
@@ -881,7 +883,7 @@ def export_example_summaries(summaries_csv_path: str, output_path: str) -> None:
         summary_dict = {
             "id": str(row["pat_enc_csn_id_surrogate"]),
             # "note": str(row["sentence"]),
-            "summary": str(row["llm_summary"]),
+            "summary": str(row["llm_output"]),
         }
 
         # Add optional fields if available
@@ -976,7 +978,7 @@ def main():
 
         # Filter out observations with NA summaries (these were dropped during processing)
         original_count = len(data_df)
-        data_df = data_df[data_df["llm_summary"].notna()].copy()
+        data_df = data_df[data_df["llm_output"].notna()].copy()
         filtered_count = len(data_df)
         if original_count != filtered_count:
             print(
@@ -1005,7 +1007,7 @@ def main():
         print(f"\nProcessing initialization: {init_name}")
         print(f"  Path: {init_path}")
 
-        data_df, concept_names, training_history = process_initialization(
+        data_df, concept_names, concept_coefficients, training_history = process_initialization(
             init_name, init_path, data_df, id_column, args.use_concept_cards
         )
 
@@ -1022,7 +1024,7 @@ def main():
                 training_history["dendrogram_image"] = dendrogram_image_path
                 print(f"  Saved dendrogram: {dendrogram_image_path}")
 
-            all_initializations.append((init_name, concept_names, training_history))
+            all_initializations.append((init_name, concept_names, concept_coefficients, training_history))
             print(f"  Added {len(concept_names)} concepts")
             if training_history:
                 print(f"  Final AUC: {training_history['final_auc']:.3f}")
@@ -1089,7 +1091,7 @@ def main():
 
     # Compute full concept coefficients if train/test split is available
     print(f"\nComputing full concept coefficients...")
-    for i, (init_name, concept_names, training_history) in enumerate(
+    for i, (init_name, concept_names, concept_coefficients, training_history) in enumerate(
         all_initializations
     ):
         if (
@@ -1123,6 +1125,7 @@ def main():
                         all_initializations[i] = (
                             init_name,
                             concept_names,
+                            concept_coefficients,
                             training_history,
                         )
                         print(
@@ -1167,7 +1170,7 @@ def main():
     print("\n=== Export Summary ===")
     print(f"Total observations: {len(data_df)}")
     print(f"Initializations: {len(all_initializations)}")
-    for init_name, concepts, training_history in all_initializations:
+    for init_name, concepts, concept_coefficients, training_history in all_initializations:
         auc_info = (
             f" (AUC: {training_history['final_auc']:.3f})" if training_history else ""
         )

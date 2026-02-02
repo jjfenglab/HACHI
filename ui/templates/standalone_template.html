@@ -921,11 +921,6 @@
                                 <i class="fas fa-file-medical"></i> Encounters
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#overview-tab" type="button" role="tab">
-                                <i class="fas fa-chart-line"></i> Method Overview
-                            </button>
-                        </li>
                     </ul>
                 </div>
             </div>
@@ -956,7 +951,16 @@
                                     <option value="test">Test Only</option>
                                 </select>
                             </div>
-                            
+
+                            <!-- Outcome Filter -->
+                            <div class="mb-2" id="outcomeFilterContainer">
+                                <select id="outcomeFilter" class="form-select form-select-sm">
+                                    <option value="all">All Outcomes</option>
+                                    <option value="0">y = 0</option>
+                                    <option value="1">y = 1</option>
+                                </select>
+                            </div>
+
                             <!-- Concept Filter -->
                             <div class="mb-2" id="conceptFilterContainer" style="display: none;">
                                 <select id="conceptFilter" class="form-select form-select-sm">
@@ -1085,74 +1089,6 @@
                         </div>
                     </div>
                 </div>
-                    </div>
-                </div>
-
-                <!-- Overview Tab -->
-                <div class="tab-pane fade" id="overview-tab" role="tabpanel">
-                    <div class="row">
-                        <div class="col-12">
-                            <!-- Method Overview Section -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="methodOverviewContent">
-                                        <!-- Enhanced method flow diagram will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Feedback Opportunities Section -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="feedbackOpportunitiesContent">
-                                        <!-- Feedback opportunities will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Concept Examples Section -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="conceptExamplesContent">
-                                        <!-- Interactive concept examples will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- All Concepts Section -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="allConceptsContent">
-                                        <!-- Concepts table will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Prompts Section -->
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="promptsContent">
-                                        <!-- Enhanced prompts with feedback integration points will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Presentation Controls -->
-                    <div class="presentation-controls">
-                        <div class="presentation-nav">
-                            <button onclick="app.previousSection()" title="Previous Section">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span id="presentationProgress" style="color: white; font-size: 0.9rem;">1/5</span>
-                            <button onclick="app.nextSection()" title="Next Section">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                            <button onclick="app.togglePresentationMode()" title="Toggle Presentation Mode" style="margin-left: 1rem;">
-                                <i class="fas fa-expand"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>

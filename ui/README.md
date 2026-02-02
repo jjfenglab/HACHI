@@ -13,31 +13,73 @@ The standalone viewer allows clinicians to:
 
 All processing happens locally in the browser - no data is sent to any server.
 
+## Data Requirements
+
+### Required: config.json Structure
+
+Your `config.json` **MUST** have a complete `dataset` section specifying all column names:
+
+```json
+{
+  "ui": {
+    "title": "Your Project Title",
+    "encounter_display_name": "Encounter"
+  },
+  "dataset": {
+    "id_column": "pat_id",
+    "note_column": "sentence",
+    "summary_column": "llm_output",
+    "metadata_columns": ["pat_id", "user_id", "encounter_date", "y"]
+  }
+}
+```
+
+**All fields are required.** The script will crash with a clear `KeyError` if any are missing.
+
+### Required: CSV Columns
+
+Your input CSV must contain the columns you specified in config.json:
+- The `id_column` value (e.g., `pat_id`)
+- The `note_column` value (e.g., `sentence`)
+- The `summary_column` value (e.g., `llm_output`)
+- All columns listed in `metadata_columns`
+
+### Example CSV
+```csv
+pat_id,user_id,encounter_date,sentence,y,llm_output
+123,456,2024-01-15,"Patient note...",1,<ai_draft>"Summary..."</ai_draft>
+789,101,2024-01-16,"Patient note...",0,<ai_draft>"Summary..."</ai_draft>
+```
+
 ## Creating a Standalone Package
 
 ### Step 1: Export Data
 
-First, export your data from the existing system into a format the standalone viewer can read:
+**Important:** You MUST provide a config.json with complete dataset configuration (see above).
+
+Export your data from the existing system into a format the standalone viewer can read:
 
 ```bash
-python export_standalone.py \
-  --llm-summaries /path/to/llm_summaries.csv \
-  --initializations init_seed_1:/path/to/init_seed_1/,init_seed_2:/path/to/init_seed_2/ \
+python export_standalone.py export \
+  --llm-summaries /path/to/data.csv \
+  --initializations init_1:/path/to/init1/,init_2:/path/to/init2/ \
   --config config.json \
-  --train-test-split /path/to/train_test_indices.csv \
   --output-dir ./export/
-
 ```
-
-
-
 
 **Parameters:**
 - `--llm-summaries`: Path to the CSV file containing notes and LLM-generated summaries
 - `--initializations`: Comma-separated list of initialization names and paths (format: `name:path`)
-- `--config`: Path to your original config.json file
+- `--config`: Path to your config.json file (REQUIRED with dataset section)
 - `--train-test-split`: (Optional) Path to CSV with train/test partition information
 - `--output-dir`: Directory where exported files will be saved
+
+The config.json must include:
+- `ui.title` and `ui.encounter_display_name`
+- `dataset.id_column`, `dataset.note_column`, `dataset.summary_column`
+- `dataset.metadata_columns` (list of columns to display)
+
+If any required field is missing, the script will crash with a clear KeyError.
 
 This creates:
 - `export/data.csv`: Combined data with notes, metadata, summaries, and concepts from all initializations
