@@ -4,6 +4,7 @@ LLM client utilities for creating and managing LLM API instances.
 This module is separate from common.py to avoid circular imports.
 """
 
+import inspect
 import logging
 import os
 import sys
@@ -19,6 +20,10 @@ from lab_llm.llm_api import LLMApi
 from lab_llm.llm_cache import LLMCache
 
 from src.ensemble_trainer.config import LLMConfig
+
+# Detect whether the installed llm-api supports local LLM params
+_LLMAPI_PARAMS = set(inspect.signature(LLMApi.__init__).parameters.keys())
+_SUPPORTS_LOCAL = "base_url" in _LLMAPI_PARAMS
 
 
 def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
@@ -44,6 +49,10 @@ def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
     if llm_extraction_type:
         llm_extraction_type = LLMModel(name=llm_extraction_type)
     # Create LLM clients based on configuration
+    base_url = getattr(config, "base_url", None)
+    local_model_name = getattr(config, "local_model_name", None)
+    timeout = getattr(config, "timeout", 120)
+
     if llm_model_type and not (llm_iter_type or llm_extraction_type):
         # Single model for both iteration and extraction
         llm = LLMApi(
@@ -52,7 +61,9 @@ def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
             model_type=llm_model_type,
             error_handler=ErrorCallbackHandler(logger),
             logging=logger,
-            timeout=120,
+            timeout=timeout,
+            base_url=base_url,
+            local_model_name=local_model_name,
         )
         return {"iter": llm, "extraction": llm}
     else:
@@ -63,7 +74,9 @@ def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
             model_type=llm_iter_type or llm_model_type,
             error_handler=ErrorCallbackHandler(logger),
             logging=logger,
-            timeout=120,
+            timeout=timeout,
+            base_url=base_url,
+            local_model_name=local_model_name,
         )
         llm_extraction = LLMApi(
             cache,
@@ -71,7 +84,9 @@ def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
             model_type=llm_extraction_type or llm_model_type,
             error_handler=ErrorCallbackHandler(logger),
             logging=logger,
-            timeout=120,
+            timeout=timeout,
+            base_url=base_url,
+            local_model_name=local_model_name,
         )
         return {"iter": llm_iter, "extraction": llm_extraction}
 
@@ -92,6 +107,9 @@ def load_llms(args, logger=None) -> dict[str, LLMApi]:
         llm_model_type=getattr(args, "llm_model_type", None),
         llm_iter_type=getattr(args, "llm_iter_type", None),
         llm_extraction_type=getattr(args, "llm_extraction_type", None),
+        base_url=getattr(args, "base_url", None),
+        local_model_name=getattr(args, "local_model_name", None),
+        timeout=getattr(args, "timeout", 120),
     )
 
     return create_llm_clients(config, logger)

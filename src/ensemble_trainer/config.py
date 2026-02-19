@@ -39,6 +39,11 @@ class LLMConfig:
     llm_iter_type: Optional[str] = None
     llm_extraction_type: Optional[str] = None
 
+    # Local LLM support (OpenAI-compatible endpoints like vLLM, LM Studio)
+    base_url: Optional[str] = None
+    local_model_name: Optional[str] = None
+    timeout: int = 120
+
 
 @dataclass
 class DataConfig:
@@ -125,6 +130,9 @@ class ConfigBuilder:
             llm_model_type=getattr(args, "llm_model_type", None),
             llm_iter_type=getattr(args, "llm_iter_type", None),
             llm_extraction_type=getattr(args, "llm_extraction_type", None),
+            base_url=getattr(args, "base_url", None),
+            local_model_name=getattr(args, "local_model_name", None),
+            timeout=getattr(args, "timeout", 120),
         )
 
         data_config = DataConfig(

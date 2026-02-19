@@ -128,6 +128,9 @@ class Keyphrase:
             model_type=LLMModel(name=self.config.llm_model_type),
             error_handler=ErrorCallbackHandler(self.logger),
             logging=logging,
+            timeout=getattr(self.config, "timeout", 120),
+            base_url=getattr(self.config, "base_url", None),
+            local_model_name=getattr(self.config, "local_model_name", None),
         )
         self.logger.info(f"Initialized LLM: {self.config.llm_model_type}")
     
