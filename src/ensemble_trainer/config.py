@@ -17,7 +17,7 @@ class ModelConfig:
     learner_type: str = "count_l2"
     count_vectorizer: str = "count"
     residual_model_type: str = "l2"
-    final_model_type: str = "l1"
+    final_model_type: str = "l1_sklearn"
     inverse_penalty_param: float = 20000.0
     use_acc: bool = False
     cv: int = 5
