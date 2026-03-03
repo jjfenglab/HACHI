@@ -70,7 +70,7 @@ class FeatureExtractionManager:
         self,
         data_df: pd.DataFrame,
         all_concepts: List[str],
-        max_new_tokens: int = 8000,
+        max_new_tokens: int = 5000,
     ) -> Dict[str, np.ndarray]:
         """
         Extract features for all concepts in batches with caching.
@@ -151,7 +151,7 @@ class FeatureExtractionManager:
         self,
         data_df: pd.DataFrame,
         concepts: List[str],
-        max_new_tokens: int = 8000,
+        max_new_tokens: int = 5000,
     ) -> Dict[str, np.ndarray]:
         """
         Extract features for training using coordinated feature extraction.
@@ -238,7 +238,7 @@ class FeatureExtractionManager:
             all_extracted_features_dict={},  # Empty dict - no cache
             batch_size=self.config.training.batch_size,
             batch_concept_size=self.config.training.batch_concept_size,
-            max_new_tokens=8000,
+            max_new_tokens=self.config.llm.max_new_tokens,
             is_image=self.config.data.is_image,
             group_size=self.config.training.batch_obs_size,
             max_section_length=self.config.data.max_section_length,
