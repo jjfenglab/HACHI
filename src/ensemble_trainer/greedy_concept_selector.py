@@ -188,23 +188,20 @@ class GreedyConceptSelector:
             top_df.feature_name,
         )
 
-    def query_for_new_cand(
-        self, iter_llm_prompt, top_feat_names, max_new_tokens=5000
-    ):
+    def query_for_new_cand(self, iter_llm_prompt, top_feat_names):
         """
         Query LLM for new candidate concepts.
 
         Args:
             iter_llm_prompt: Iteration prompt string
             top_feat_names: Top feature names
-            max_new_tokens: Maximum tokens for LLM response
 
         Returns:
             List of candidate concept dictionaries
         """
         llm_response = self.llm_iter.get_output(
             iter_llm_prompt,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=self.config.llm.max_new_tokens,
             response_model=CandidateConcepts,
         )
         candidate_concept_dicts = llm_response.to_dicts(

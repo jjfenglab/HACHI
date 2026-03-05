@@ -224,7 +224,7 @@ class ConceptLearnerModel:
                         concepts_to_replace[0]["concept"],
                         meta_concepts_text,
                         top_features_text)
-                    prior_response = self.llm_iter.get_output(prior_llm_prompt, max_new_tokens=5000, response_model=PriorResponse)
+                    prior_response = self.llm_iter.get_output(prior_llm_prompt, max_new_tokens=self.max_new_tokens, response_model=PriorResponse)
                     all_concept_dicts = concepts_to_replace + raw_candidate_concept_dicts
                     all_concept_dicts = prior_response.fill_candidate_concept_dicts(all_concept_dicts)
                     logging.info("candidate concept dicts %s", all_concept_dicts[1:])
