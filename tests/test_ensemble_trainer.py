@@ -610,7 +610,6 @@ class EnsembleTrainerTest:
                 await trainer.feature_extraction_manager.extract_for_training(
                     self.test_data,
                     current_concept_names,
-                    max_new_tokens=trainer.config.llm.max_new_tokens,
                 )
             )
 
@@ -642,7 +641,6 @@ class EnsembleTrainerTest:
                 await trainer.feature_extraction_manager.extract_for_training(
                     self.test_data,
                     candidate_names,
-                    max_new_tokens=trainer.config.llm.max_new_tokens,
                 )
             )
 
@@ -824,7 +822,6 @@ class EnsembleTrainerTest:
                 await trainer.feature_extraction_manager.extract_features_batch(
                     self.test_data.head(20),  # Small subset for testing
                     concepts,
-                    max_new_tokens=1000,
                 )
             )
 
@@ -840,7 +837,6 @@ class EnsembleTrainerTest:
                 await trainer.feature_extraction_manager.extract_features_batch(
                     self.test_data.head(20),
                     concepts,  # Same concepts - should use cache
-                    max_new_tokens=1000,
                 )
             )
 

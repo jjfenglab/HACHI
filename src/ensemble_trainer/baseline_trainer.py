@@ -114,7 +114,6 @@ async def train_baselines_coordinated(
     original_extractions = await feature_extraction_manager.extract_features_batch(
         data_df,  # Original dataset
         all_baseline_concepts,
-        max_new_tokens=config.llm.max_new_tokens,
     )
 
     # Phase 3: Map extractions to split samples and finalize training

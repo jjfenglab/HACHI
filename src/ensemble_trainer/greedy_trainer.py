@@ -105,7 +105,6 @@ async def run_coordinated_concept_evolution(
                 await feature_extraction_manager.extract_for_training(
                     data_df,  # Extract on original dataset
                     all_current_concepts,
-                    max_new_tokens=config.llm.max_new_tokens,
                 )
             )
 

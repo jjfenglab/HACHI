@@ -22,7 +22,6 @@ async def test_feature_extraction_batch(setup_trainer_with_mocks, small_config, 
     extractions = await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts,
-        max_new_tokens=1000,
     )
 
     assert len(extractions) == len(concepts), "Wrong number of extractions"
@@ -46,14 +45,12 @@ async def test_feature_extraction_caching(setup_trainer_with_mocks, small_config
     extractions1 = await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts,
-        max_new_tokens=1000,
     )
 
     # Second extraction - should use cache
     extractions2 = await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts,
-        max_new_tokens=1000,
     )
 
     # Should return same results from cache
@@ -85,7 +82,6 @@ async def test_extraction_caching_reduces_llm_calls(setup_trainer_with_mocks, sm
     await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts,
-        max_new_tokens=1000,
     )
 
     call_count_after_first = mock_llm.call_count
@@ -94,7 +90,6 @@ async def test_extraction_caching_reduces_llm_calls(setup_trainer_with_mocks, sm
     await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts,
-        max_new_tokens=1000,
     )
 
     # LLM call count should NOT increase (all cached)
@@ -125,7 +120,6 @@ async def test_extraction_partial_cache_hit(setup_trainer_with_mocks, small_conf
     await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts_batch1,
-        max_new_tokens=1000,
     )
 
     call_count_after_batch1 = mock_llm.call_count
@@ -139,7 +133,6 @@ async def test_extraction_partial_cache_hit(setup_trainer_with_mocks, small_conf
     extractions = await trainer.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         concepts_batch2,
-        max_new_tokens=1000,
     )
 
     # Should have called LLM only for the new concept
@@ -248,7 +241,6 @@ async def test_extraction_cache_restoration_from_checkpoint(
     await trainer2.feature_extraction_manager.extract_features_batch(
         small_test_data.head(20),
         cached_concepts,
-        max_new_tokens=1000,
     )
 
     # Should not have called LLM (all cached)
