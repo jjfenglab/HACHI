@@ -14,12 +14,10 @@ import pandas as pd
 import torch
 
 import src.common as common
-from src.llm_response_types import CandidateConcepts
 
 from . import data_operations
 from .config import EnsembleConfig
 from .extraction_utils import ExtractionHandler
-from .model_utils import generate_prior_prompt
 from .text_processing import get_word_count_data
 
 
@@ -32,7 +30,7 @@ class BaseConceptGenerator(ABC):
 
     @abstractmethod
     def generate_initial_concepts(
-        self, init_seed: int, data_df: pd.DataFrame
+        self, init_seed: int, data_df: pd.DataFrame, concept_selector
     ) -> Tuple[List[dict], pd.DataFrame]:
         """Generate initial concepts for baseline training."""
         pass
@@ -53,7 +51,7 @@ class StandardConceptGenerator(BaseConceptGenerator):
     """Standard concept generation."""
 
     def generate_initial_concepts(
-        self, init_seed: int, data_df: pd.DataFrame
+        self, init_seed: int, data_df: pd.DataFrame, concept_selector
     ) -> Tuple[List[dict], pd.DataFrame]:
         """
         Generate initial concepts for a single initialization using bootstrap-specific residual model.
@@ -61,20 +59,17 @@ class StandardConceptGenerator(BaseConceptGenerator):
         Returns:
             Tuple of (concept_dicts, bootstrap_data)
         """
-        # Set up random seed
         np.random.seed(init_seed)
         torch.manual_seed(init_seed)
 
         logging.info(f"Generating initial concepts for init_seed {init_seed}")
 
-        # Create bootstrap sample for this initialization
         sampled_data, test_data = data_operations.create_data_split(
             data_df,
             init_seed,
             self.config.training.train_frac,
         )
 
-        # Get word count data from sampled sample
         X_words_train, word_names = get_word_count_data(
             sampled_data,
             self.config.model.count_vectorizer,
@@ -84,38 +79,25 @@ class StandardConceptGenerator(BaseConceptGenerator):
         y_train = sampled_data["y"].to_numpy().flatten()
         sample_weight = sampled_data["sample_weight"].to_numpy().flatten()
 
-        # Generate initial concepts using LLM based on sampled-specific patterns
-        init_llm_prompt = generate_prior_prompt(
-            sampled_data,  # Use sampled data for concept generation
+        init_llm_prompt, _, top_feat_names = concept_selector.make_initial_concept_prompt(
             X_words_train,
             y_train,
             sample_weight,
-            word_names=word_names,
-            seed=init_seed,
-            max_meta_concepts=self.config.concept.max_meta_concepts,
-            keep_x_cols=self.config.data.keep_x_cols,
-            model=self.config.model.model,
-            baseline_init_file=self.config.concept.baseline_init_file,
-            config_file=getattr(self.config.concept, "config_file", None),
-            num_top=self.config.data.num_top_attributes,
-            use_acc=self.config.model.use_acc,
-            cv=self.config.model.cv,
+            sampled_data,
+            word_names,
         )
-        
+
         logging.debug(
             f"[CONCEPT GEN] Using standard concept generation for init_seed {init_seed}"
         )
 
-        # Get candidate concepts from LLM
-        candidate_concepts_llm = self.llm_dict["iter"].get_output(
+        candidate_concept_dicts = concept_selector.query_for_new_cand(
             init_llm_prompt,
+            top_feat_names,
             max_new_tokens=self.config.llm.max_new_tokens,
-            response_model=CandidateConcepts,
         )
 
-        concept_dicts = candidate_concepts_llm.to_dicts()[
-            : self.config.concept.max_meta_concepts
-        ]
+        concept_dicts = candidate_concept_dicts[: self.config.concept.max_meta_concepts]
 
         logging.info(
             f"Generated {len(concept_dicts)} concepts for init_seed {init_seed}"

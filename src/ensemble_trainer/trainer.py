@@ -185,6 +185,7 @@ class EnsembleTrainer:
                 num_classes=self.config.training.num_classes,
                 num_meta_concepts=self.config.concept.goal_num_meta_concepts,
                 prompt_iter_file=self.config.concept.prompt_iter_file,
+                prompt_init_file=self.config.concept.baseline_init_file,
                 config=self.config,
                 residual_model_type=self.config.model.residual_model_type,
                 final_model_type=self.config.model.final_model_type,
@@ -712,8 +713,8 @@ class EnsembleTrainer:
 
     def _setup_training_environment(self, data_df: pd.DataFrame):
         """Setup LLM clients, evidence-span summaries, and semantic cache."""
-        # Setup LLM clients
         self._setup_llm_clients()
+        self._create_greedy_concept_selectors()
 
     async def _run_baseline_phase(self, data_df: pd.DataFrame):
         """
@@ -729,6 +730,7 @@ class EnsembleTrainer:
                 self.config.init_seeds,
                 self.config,
                 self.concept_generator.generate_initial_concepts,
+                self.concept_selectors,
                 self.feature_extraction_manager,
                 self.concept_tracker,
             )
@@ -779,7 +781,6 @@ class EnsembleTrainer:
 
     async def _run_greedy_phase(self, data_df: pd.DataFrame):
         """Execute greedy training phase."""
-        self._create_greedy_concept_selectors()
         if not self.ensemble_state.is_greedy_complete():
             logging.info("Phase 2: Coordinated greedy training")
             self.ensemble_state.current_phase = TrainingPhase.GREEDY_RUNNING
