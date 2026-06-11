@@ -1,16 +1,15 @@
 You are extracting clinical factors from patient notes for predicting whether or not they have the flu.
 
 Extract factors related to:
-- Patient symptoms
-- Exam findings
+- Patient symptoms that are negative or positive risk factors
+- Exam findings that are negative or positive risk factors
 
-For each factor, provide the primary descriptor and synonyms.
+For each factor, provide the primary descriptor and synonyms. That is:
+1. The primary descriptor (exact or paraphrased from the note). Each descriptor should be 1-2 words.
+2. Synonyms or alternative phrasings. Separate items with commas
+3. Broader generalizations that capture similar concepts. Separate items with commas
 
-Requirements:
-- Each descriptor should be 1-4 words
-- Focus on clinically relevant factors
-- Separate items with commas
-- Base responses strictly on the note text
+You MUST output at least one set of keyphrases for each patient. Aim for 3-5 keyphrases per patient.
 
 Note:
 "{note}"
@@ -18,5 +17,8 @@ Note:
 Output Format:
 {
   "reasoning": "Step-by-step reasoning through the note",
-  "keyphrases": ["fever", "body aches", "cough", "normal temperature"]
+  "keyphrases": [
+    "fever, high temperature",
+    "dry cough, cough",
+    "body aches, malaise"]
 }

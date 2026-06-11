@@ -10,11 +10,9 @@ import pandas as pd
 # Flu symptoms and findings
 FLU_SYMPTOMS = [
     "fever of 101.5F",
-    "body aches and myalgias",
-    "fatigue and malaise",
+    "high temperature",
     "dry cough",
-    "sore throat",
-    "headache",
+    "wet cough",
     "nasal congestion",
     "runny nose",
 ]
@@ -30,20 +28,6 @@ NO_FLU_COMPLAINTS = [
     "request for lab work",
 ]
 
-FLU_EXAM_FINDINGS = [
-    "Temperature 101.2F",
-    "Pharynx erythematous",
-    "Cervical lymphadenopathy",
-    "Mild tachycardia",
-]
-
-NORMAL_EXAM_FINDINGS = [
-    "Temperature 98.6F",
-    "Pharynx clear",
-    "No lymphadenopathy",
-    "Vital signs normal",
-]
-
 
 def generate_note(has_flu: bool, patient_id: int) -> str:
     """Generate a synthetic patient note."""
@@ -54,21 +38,10 @@ def generate_note(has_flu: bool, patient_id: int) -> str:
 
     if has_flu:
         symptoms = random.sample(FLU_SYMPTOMS, random.randint(3, 5))
-        exam = random.sample(FLU_EXAM_FINDINGS, random.randint(2, 3))
-        cc = "flu-like symptoms"
-        assessment = "Influenza likely. Recommend rest, fluids, and symptomatic treatment."
     else:
-        cc = random.choice(NO_FLU_COMPLAINTS)
-        symptoms = []
-        exam = random.sample(NORMAL_EXAM_FINDINGS, 2)
-        assessment = "No acute illness. Continue current management."
+        symptoms = random.sample(NO_FLU_COMPLAINTS, random.randint(3, 5))
 
-    note = f"Chief complaint: {cc}\n"
-    note += f"HPI: {age}yo {sex}."
-    if symptoms:
-        note += f" Reports {', '.join(symptoms)}."
-    note += f"\nExam: {'. '.join(exam)}."
-    note += f"\nAssessment: {assessment}"
+    note = f"{age}yo {sex}. Reports {', '.join(symptoms)}."
 
     return note
 
@@ -95,13 +68,12 @@ def generate_demo_dataset(n_samples: int = 40, positive_rate: float = 0.4) -> pd
         })
 
     random.seed(42)
-    random.shuffle(records)
 
     return pd.DataFrame(records)
 
 
 if __name__ == "__main__":
-    df = generate_demo_dataset(n_samples=40, positive_rate=0.4)
+    df = generate_demo_dataset(n_samples=40, positive_rate=0.5)
     df.to_csv("demo_patients.csv", index=False)
     print(f"Generated {len(df)} records ({df['y'].sum()} flu, {len(df) - df['y'].sum()} no flu)")
     print(f"\nExample:\n{df.iloc[0]['sentence']}")
