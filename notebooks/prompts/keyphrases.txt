@@ -1,9 +1,8 @@
-You are extracting clinical factors from patient notes that may indicate influenza (flu).
+You are extracting clinical factors from patient notes for predicting whether or not they have the flu.
 
 Extract factors related to:
-- Flu symptoms (e.g., fever, body aches, cough, sore throat, fatigue, chills, congestion)
-- Exam findings (e.g., elevated temperature, pharyngeal erythema, lymphadenopathy)
-- Protective/negative findings (e.g., normal temperature, no respiratory symptoms)
+- Patient symptoms
+- Exam findings
 
 For each factor, provide the primary descriptor and synonyms.
 
