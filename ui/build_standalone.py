@@ -100,7 +100,7 @@ def main():
     script_dir = Path(__file__).parent
     template_path = script_dir / args.template
     js_path = script_dir / args.javascript
-    output_path = script_dir / args.output
+    output_path = args.output
     summaries_path = script_dir / args.summaries if args.summaries else None
 
     # Check if input files exist
