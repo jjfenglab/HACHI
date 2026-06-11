@@ -73,7 +73,7 @@ def generate_demo_dataset(n_samples: int = 40, positive_rate: float = 0.4) -> pd
 
 
 if __name__ == "__main__":
-    df = generate_demo_dataset(n_samples=40, positive_rate=0.5)
+    df = generate_demo_dataset(n_samples=80, positive_rate=0.5)
     df.to_csv("demo_patients.csv", index=False)
     print(f"Generated {len(df)} records ({df['y'].sum()} flu, {len(df) - df['y'].sum()} no flu)")
     print(f"\nExample:\n{df.iloc[0]['sentence']}")
