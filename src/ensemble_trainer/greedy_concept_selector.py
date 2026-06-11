@@ -39,6 +39,7 @@ class GreedyConceptSelector:
         num_classes: int,
         num_meta_concepts: int,
         prompt_iter_file: str,
+        prompt_init_file: str,
         config: EnsembleConfig,
         residual_model_type: str,
         final_model_type: str,
@@ -71,6 +72,7 @@ class GreedyConceptSelector:
         self.is_multiclass = num_classes > 2
         self.num_meta_concepts = num_meta_concepts
         self.prompt_iter_file = prompt_iter_file
+        self.prompt_init_file = prompt_init_file
         self.config = config
         self.residual_model_type = residual_model_type
         self.final_model_type = final_model_type
@@ -106,6 +108,67 @@ class GreedyConceptSelector:
             for w in feat_names
         ]
         return X_features[:, keep_mask], feat_names[keep_mask]
+
+    def make_initial_concept_prompt(
+        self,
+        X_words,
+        y,
+        sample_weight,
+        data_df,
+        feat_names,
+    ):
+        """
+        Generate prompt for initial concept generation (no existing concepts).
+
+        Args:
+            X_words: Word count features
+            y: Target labels
+            sample_weight: Sample weights
+            data_df: Data DataFrame
+            feat_names: Feature names
+
+        Returns:
+            Tuple of (prompt, top_features_text, top_feat_names)
+        """
+        with open(self.prompt_init_file, "r") as file:
+            prompt_template = file.read()
+
+        X_keep = None
+        if self.force_keep_columns is not None:
+            X_keep = data_df[self.force_keep_columns].to_numpy()
+
+        top_df = fit_residual(
+            self.residual_model_type,
+            feat_names.tolist(),
+            X_keep,
+            X_words,
+            y,
+            sample_weight=sample_weight,
+            penalty_downweight_factor=100,
+            is_multiclass=self.is_multiclass,
+            num_top=self.num_top,
+            use_acc=self.is_greedy_metric_acc,
+            seed=self.init_seed,
+            force_keep_columns=self.force_keep_columns,
+            cv=self.cv,
+        )
+
+        normalization_factor = np.max(np.abs(top_df.coef))
+        top_df["coef"] = (
+            top_df.coef / normalization_factor
+            if normalization_factor > 0
+            else top_df.coef
+        )
+
+        top_features_text = top_df[["feature_name", "coef"]].to_csv(
+            index=False, float_format="%.3f"
+        )
+        prompt_template = prompt_template.replace("{top_features_df}", top_features_text)
+        prompt_template = prompt_template.replace(
+            "{max_meta_concepts}", str(self.num_meta_concepts)
+        )
+
+        return prompt_template, top_features_text, top_df.feature_name
 
     def make_new_concept_prompt(
         self,

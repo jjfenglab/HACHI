@@ -26,6 +26,7 @@ async def train_baselines_coordinated(
     init_seeds: List[int],
     config: EnsembleConfig,
     generate_initial_concepts_func,
+    concept_selectors: Dict,
     feature_extraction_manager,
     concept_tracker,
 ) -> Dict[int, TrainingHistory]:
@@ -42,6 +43,7 @@ async def train_baselines_coordinated(
         init_seeds: List of initialization seeds
         config: Ensemble configuration
         generate_initial_concepts_func: Function to generate initial concepts
+        concept_selectors: Dict mapping init_seed to GreedyConceptSelector
         feature_extraction_manager: Shared feature extraction manager
         concept_tracker: Concept tracker for managing concept assignments
 
@@ -67,7 +69,11 @@ async def train_baselines_coordinated(
         # Create all tasks at once
         tasks = [
             loop.run_in_executor(
-                executor, generate_initial_concepts_func, init_seed, data_df
+                executor,
+                generate_initial_concepts_func,
+                init_seed,
+                data_df,
+                concept_selectors[init_seed],
             )
             for init_seed in init_seeds
         ]
