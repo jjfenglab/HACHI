@@ -15,7 +15,6 @@ FLU_SYMPTOMS = [
     "dry cough",
     "sore throat",
     "headache",
-    "chills and sweats",
     "nasal congestion",
     "runny nose",
 ]

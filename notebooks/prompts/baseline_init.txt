@@ -1,45 +1,21 @@
-We are fitting a concept bottleneck model (CBM) to predict Quantum Temporal Dissonance Syndrome (QTDS) - a fictional condition where patients experience temporal perception anomalies. The goal is to come up with a few meta-concepts that can be used to easily classify patients based on their clinical notes.
+We are fitting a concept bottleneck model (CBM) to predict influenza (flu) from patient notes. The goal is to identify interpretable yes/no concepts that clinicians can use to predict flu.
 
-A meta-concept must be defined as a yes/no question of the form "Does the note mention...?". Pick meta-concepts that are specific and clinically meaningful.
+A meta-concept must be a yes/no question like "Does the note mention...?".
 
-Given this feedback, we conducted a data analysis to find the top phrases most associated with QTDS. We fit a logistic regression model with tf-idf features.
-
-Phrases with top coefficients:
+Given data analysis, these are the top phrases associated with flu:
 {top_features_df}
 
 YOUR TASK:
-Propose {max_meta_concepts} candidate meta-concepts for the CBM. Analyze the data-driven results above. You can merge, revise, or add new questions.
+Propose {max_meta_concepts} candidate meta-concepts for the CBM.
 
-Do not propose:
-- Meta-concepts that are unions of different concepts
-- Questions with answers that are almost always yes
-- Questions where yes/no options are not clearly defined
-
-Propose candidates in the following JSON format:
+Propose candidates in JSON format:
 {
-  "reasoning": "Step-by-step explanation of how you worked through the concepts.",
+  "reasoning": "Step-by-step explanation",
   "concepts": [
     {
-      "concept": "<QUESTION 1>",
+      "concept": "Does the note mention the patient having fever?",
       "is_risk_factor": true,
-      "words": ["<SYNONYM 1>", "<SYNONYM 2>", "<SYNONYM 3>"]
-    }
-  ]
-}
-
-Example:
-{
-  "reasoning": "The top features suggest temporal perception symptoms and quantum exposure are predictive.",
-  "concepts": [
-    {
-      "concept": "Does the note mention the patient experiencing temporal perception anomalies, e.g., time moving at different speeds or déjà vu?",
-      "is_risk_factor": true,
-      "words": ["temporal distortion", "déjà vu", "time perception"]
-    },
-    {
-      "concept": "Does the note mention the patient having exposure to quantum computing equipment?",
-      "is_risk_factor": true,
-      "words": ["quantum equipment", "physics lab", "quantum computing"]
+      "words": ["fever", "temperature elevated", "febrile"]
     }
   ]
 }
