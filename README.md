@@ -1,5 +1,5 @@
 <h1 align="center"> 🤖🤝🧑🏾 HACHI 🧑🏻🤝🤖 </h1>
-<p align="center"> <b>Human-AI Co-design for Clinical Prediction Models</b>  (<a href="[https://arxiv.org/abs/2601.09072](https://www.nature.com/articles/s41746-026-02838-5)">Feng et al. 2026, npj Digital Medicine</a>). 
+<p align="center"> <b>Human-AI Co-design for Clinical Prediction Models</b>  (<a href="https://www.nature.com/articles/s41746-026-02838-5">Feng et al. 2026, npj Digital Medicine</a>). 
 </p>
 
 <p align="center">
