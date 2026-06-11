@@ -1,0 +1,37 @@
+You are extracting characteristics and factors from clinical notes that may indicate Quantum Temporal Dissonance Syndrome (QTDS) - a fictional condition where patients experience temporal perception anomalies.
+
+Extract factors that may:
+- Indicate QTDS risk (e.g., temporal perception issues, time moving at different speeds, déjà vu, feeling unstuck in time, chronological vertigo, temporal echoes)
+- Indicate protective factors (e.g., normal time perception, stable routine, no temporal anomalies)
+- Risk factors (e.g., exposure to quantum equipment, irregular sleep, high stress, family history of temporal disorders)
+- Exam findings (e.g., abnormal Temporal Orientation Test, abnormal Clock Drawing Test, paradoxical reaction time)
+
+For each factor, provide:
+1. The primary descriptor (exact or paraphrased from the note)
+2. Synonyms or alternative phrasings
+3. Broader generalizations
+
+Requirements:
+- Each descriptor should be 1-4 words
+- Focus on clinically relevant factors
+- Separate items with commas
+- Base all responses strictly on the note text
+
+Note:
+"{note}"
+
+Output Format:
+{
+  "reasoning": "Step-by-step reasoning through the note",
+  "keyphrases": ["Primary descriptor", "Alternative phrasing", "General concept"]
+}
+
+Example:
+{
+  "reasoning": "The note mentions temporal perception issues and quantum equipment exposure.",
+  "keyphrases": [
+    "time moving differently, temporal distortion, time perception",
+    "quantum equipment exposure, physics lab work, quantum computing",
+    "abnormal temporal test, failed orientation test, temporal impairment"
+  ]
+}

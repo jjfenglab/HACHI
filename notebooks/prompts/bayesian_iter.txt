@@ -1,0 +1,44 @@
+We are fitting a concept bottleneck model (CBM) to predict Quantum Temporal Dissonance Syndrome (QTDS). We have {num_concepts_fixed} meta-concepts so far:
+{meta_concepts}
+
+To improve the CBM, I fit a linear regression model on extracted concepts to predict the residuals. These are the top extracted phrases in descending order of importance:
+
+{top_features_df}
+
+A positive coefficient means high QTDS risk is associated with that concept. A negative coefficient means lower QTDS risk.
+
+Given the residual model above, create candidates for the {num_concepts}th meta-concept. Be systematic and consider all listed concepts. Start from most to least predictive.
+
+Suggestions:
+- Do not propose meta-concepts that are unions of different concepts
+- Do not propose questions with answers that are almost always yes
+- Concepts must be specific and clearly defined
+
+Propose at least ten candidates in the following JSON format:
+{
+  "reasoning": "Step-by-step explanation of how you worked through the residual model concepts.",
+  "concepts": [
+    {
+      "concept": "<QUESTION 1>",
+      "is_risk_factor": true,
+      "words": ["<SYNONYM 1>", "<SYNONYM 2>", "<SYNONYM 3>"]
+    }
+  ]
+}
+
+Example:
+{
+  "reasoning": "The residual model shows temporal shadows and irregular sleep are predictive.",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient seeing temporal shadows or future versions of events?",
+      "is_risk_factor": true,
+      "words": ["temporal shadows", "seeing future", "premonitions"]
+    },
+    {
+      "concept": "Does the note mention the patient having irregular sleep-wake cycles?",
+      "is_risk_factor": true,
+      "words": ["irregular sleep", "sleep disturbance", "circadian disruption"]
+    }
+  ]
+}
