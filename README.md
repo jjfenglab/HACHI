@@ -23,9 +23,6 @@ The demo walks through:
 - Generating synthetic clinical notes
 - Running the HACHI agent loop
 - Reviewing and interpreting the learned concepts
-- Simulating human feedback rounds
-
-*Note: The demo includes pre-computed outputs so it can run without API access.*
 
 ---
 
