@@ -245,14 +245,17 @@ HACHI/
 If you use HACHI in your research, please cite:
 
 ```bibtex
-@misc{feng2026hachi,
-      title={Human-AI Co-design for Clinical Prediction Models}, 
-      author={Jean Feng and Avni Kothari and Patrick Vossler and Andrew Bishara and Lucas Zier and Newton Addo and Aaron Kornblith and Yan Shuo Tan and Chandan Singh},
-      year={2026},
-      eprint={2601.09072},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2601.09072}, 
+@ARTICLE{Feng2026-ka,
+  title     = "Human-{AI} co-design for clinical prediction models",
+  author    = "Feng, Jean and Kothari, Avni and Vossler, Patrick and Bishara,
+               Andrew and Zier, Lucas and Addo, Newton and Kornblith, Aaron and
+               Tan, Yan Shuo and Singh, Chandan",
+  journal   = "NPJ Digit. Med.",
+  publisher = "Springer Science and Business Media LLC",
+  pages     = "1--11",
+  month     =  jun,
+  year      =  2026,
+  language  = "en"
 }
 ```
 
