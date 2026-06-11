@@ -3,14 +3,16 @@ Synthetic dataset generator for HACHI demo.
 
 Creates a simple flu detection scenario for demonstrating the HACHI framework.
 """
-
-import random
+import numpy as np
+from numpy import random
 import pandas as pd
 
 # Flu symptoms and findings
-FLU_SYMPTOMS = [
+FLU_TEMP_SYMPTOMS = [
     "fever of 101.5F",
     "high temperature",
+]
+FLU_SYMPTOMS = [
     "dry cough",
     "wet cough",
     "nasal congestion",
@@ -37,9 +39,11 @@ def generate_note(has_flu: bool, patient_id: int) -> str:
     sex = random.choice(["male", "female"])
 
     if has_flu:
-        symptoms = random.sample(FLU_SYMPTOMS, random.randint(3, 5))
+        symptoms = np.concatenate((np.random.choice(FLU_TEMP_SYMPTOMS, size=1), np.random.choice(FLU_SYMPTOMS, size=2))).tolist()
+        print(symptoms)
     else:
-        symptoms = random.sample(NO_FLU_COMPLAINTS, random.randint(3, 5))
+        symptoms = random.choice(NO_FLU_COMPLAINTS, size=np.random.randint(3, 5)).tolist()
+        print(symptoms)
 
     note = f"{age}yo {sex}. Reports {', '.join(symptoms)}."
 

@@ -13,10 +13,11 @@ Propose candidates in JSON format:
   "reasoning": "Step-by-step explanation",
   "concepts": [
     {
-      "concept": "Does the note mention the patient having fever?",
+      "concept": "Does the note mention the patient having nausea?",
       "is_risk_factor": true,
-      "words": ["fever", "temperature elevated", "febrile"]
-    }
+      "words": ["nausea", "vomiting"]
+    },
+    ...
   ]
 }
 
