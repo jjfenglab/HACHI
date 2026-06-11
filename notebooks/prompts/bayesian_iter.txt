@@ -1,0 +1,22 @@
+We are fitting a concept bottleneck model (CBM) with 2 concepts to predict influenza (flu). We have 1 meta-concept so far:
+{meta_concepts}
+
+To improve the CBM, these are the top phrases from the residual model:
+{top_features_df}
+
+A positive coefficient means higher flu risk. A negative coefficient means lower flu risk.
+
+Create five candidates for the 2nd meta-concept. Be systematic and consider all listed concepts.
+
+Propose at least ten candidates in JSON format:
+{
+  "reasoning": "Step-by-step explanation",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient having nausea?",
+      "is_risk_factor": true,
+      "words": ["vomiting", "nausea"]
+    },
+    ...
+  ]
+}

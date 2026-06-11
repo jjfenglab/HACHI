@@ -1,0 +1,24 @@
+We are fitting a concept bottleneck model (CBM) to predict whether or not a patient has the flu from their clinical notes. The goal is to identify interpretable yes/no concepts that clinicians can use to predict probability of having the flu.
+
+A meta-concept must be a yes/no question like "Does the note mention the patient having...?".
+
+Given data analysis, these are the top phrases associated with flu:
+{top_features_df}
+
+YOUR TASK:
+Propose {max_meta_concepts} candidate meta-concepts for the CBM.
+
+Propose candidates in JSON format:
+{
+  "reasoning": "Step-by-step explanation",
+  "concepts": [
+    {
+      "concept": "Does the note mention the patient having nausea?",
+      "is_risk_factor": true,
+      "words": ["nausea", "vomiting"]
+    },
+    ...
+  ]
+}
+
+Final answer:

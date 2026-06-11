@@ -1,0 +1,81 @@
+patient_id,sentence,y
+FLU-000,"69yo female. Reports high temperature, dry cough, runny nose.",1
+FLU-001,"62yo female. Reports fever of 101.5F, dry cough, runny nose.",1
+FLU-002,"65yo female. Reports high temperature, dry cough, nasal congestion.",1
+FLU-003,"67yo male. Reports high temperature, runny nose, dry cough.",1
+FLU-004,"71yo female. Reports high temperature, wet cough, dry cough.",1
+FLU-005,"60yo male. Reports high temperature, wet cough, nasal congestion.",1
+FLU-006,"35yo female. Reports high temperature, dry cough, nasal congestion.",1
+FLU-007,"72yo male. Reports high temperature, nasal congestion, runny nose.",1
+FLU-008,"28yo male. Reports high temperature, wet cough, wet cough.",1
+FLU-009,"53yo male. Reports high temperature, nasal congestion, dry cough.",1
+FLU-010,"34yo female. Reports fever of 101.5F, runny nose, dry cough.",1
+FLU-011,"50yo female. Reports fever of 101.5F, runny nose, wet cough.",1
+FLU-012,"36yo female. Reports fever of 101.5F, wet cough, wet cough.",1
+FLU-013,"43yo male. Reports fever of 101.5F, dry cough, nasal congestion.",1
+FLU-014,"68yo male. Reports fever of 101.5F, nasal congestion, runny nose.",1
+FLU-015,"33yo female. Reports fever of 101.5F, wet cough, runny nose.",1
+FLU-016,"66yo male. Reports high temperature, wet cough, wet cough.",1
+FLU-017,"72yo female. Reports high temperature, nasal congestion, nasal congestion.",1
+FLU-018,"67yo female. Reports fever of 101.5F, wet cough, nasal congestion.",1
+FLU-019,"54yo male. Reports high temperature, nasal congestion, dry cough.",1
+FLU-020,"60yo male. Reports high temperature, runny nose, dry cough.",1
+FLU-021,"34yo female. Reports fever of 101.5F, dry cough, dry cough.",1
+FLU-022,"29yo male. Reports fever of 101.5F, dry cough, nasal congestion.",1
+FLU-023,"44yo male. Reports fever of 101.5F, wet cough, nasal congestion.",1
+FLU-024,"59yo female. Reports fever of 101.5F, runny nose, wet cough.",1
+FLU-025,"29yo male. Reports fever of 101.5F, runny nose, wet cough.",1
+FLU-026,"31yo male. Reports high temperature, nasal congestion, runny nose.",1
+FLU-027,"44yo male. Reports fever of 101.5F, runny nose, dry cough.",1
+FLU-028,"26yo female. Reports high temperature, nasal congestion, dry cough.",1
+FLU-029,"46yo female. Reports fever of 101.5F, wet cough, nasal congestion.",1
+FLU-030,"62yo female. Reports high temperature, wet cough, dry cough.",1
+FLU-031,"43yo female. Reports fever of 101.5F, nasal congestion, nasal congestion.",1
+FLU-032,"48yo female. Reports high temperature, nasal congestion, dry cough.",1
+FLU-033,"45yo female. Reports fever of 101.5F, nasal congestion, nasal congestion.",1
+FLU-034,"58yo male. Reports fever of 101.5F, wet cough, nasal congestion.",1
+FLU-035,"34yo female. Reports fever of 101.5F, runny nose, wet cough.",1
+FLU-036,"30yo male. Reports fever of 101.5F, dry cough, wet cough.",1
+FLU-037,"40yo female. Reports fever of 101.5F, runny nose, dry cough.",1
+FLU-038,"58yo female. Reports high temperature, runny nose, dry cough.",1
+FLU-039,"34yo female. Reports high temperature, dry cough, dry cough.",1
+CTRL-000,"48yo female. Reports blood pressure check, skin rash on arm, mild back pain.",0
+CTRL-001,"70yo female. Reports skin rash on arm, skin rash on arm, blood pressure check, mild back pain.",0
+CTRL-002,"64yo female. Reports skin rash on arm, routine follow-up visit, routine follow-up visit, mild back pain.",0
+CTRL-003,"54yo female. Reports routine follow-up visit, mild back pain, annual physical exam, annual physical exam.",0
+CTRL-004,"27yo female. Reports knee pain after exercise, request for lab work, blood pressure check, request for lab work.",0
+CTRL-005,"60yo female. Reports medication refill, request for lab work, routine follow-up visit, mild back pain.",0
+CTRL-006,"53yo female. Reports annual physical exam, request for lab work, medication refill, annual physical exam.",0
+CTRL-007,"43yo female. Reports knee pain after exercise, request for lab work, medication refill, request for lab work.",0
+CTRL-008,"49yo female. Reports blood pressure check, blood pressure check, mild back pain, routine follow-up visit.",0
+CTRL-009,"40yo female. Reports request for lab work, knee pain after exercise, request for lab work.",0
+CTRL-010,"61yo male. Reports annual physical exam, knee pain after exercise, skin rash on arm.",0
+CTRL-011,"36yo male. Reports knee pain after exercise, knee pain after exercise, blood pressure check.",0
+CTRL-012,"26yo female. Reports annual physical exam, knee pain after exercise, skin rash on arm, mild back pain.",0
+CTRL-013,"33yo male. Reports annual physical exam, skin rash on arm, medication refill.",0
+CTRL-014,"46yo female. Reports knee pain after exercise, knee pain after exercise, skin rash on arm.",0
+CTRL-015,"62yo male. Reports blood pressure check, request for lab work, knee pain after exercise, blood pressure check.",0
+CTRL-016,"26yo female. Reports routine follow-up visit, request for lab work, medication refill, request for lab work.",0
+CTRL-017,"64yo male. Reports medication refill, skin rash on arm, skin rash on arm.",0
+CTRL-018,"34yo female. Reports request for lab work, skin rash on arm, skin rash on arm, mild back pain.",0
+CTRL-019,"30yo male. Reports request for lab work, skin rash on arm, knee pain after exercise.",0
+CTRL-020,"64yo female. Reports knee pain after exercise, mild back pain, routine follow-up visit, knee pain after exercise.",0
+CTRL-021,"42yo female. Reports medication refill, request for lab work, routine follow-up visit, knee pain after exercise.",0
+CTRL-022,"37yo female. Reports blood pressure check, routine follow-up visit, routine follow-up visit, medication refill.",0
+CTRL-023,"32yo female. Reports mild back pain, request for lab work, knee pain after exercise, annual physical exam.",0
+CTRL-024,"42yo female. Reports knee pain after exercise, medication refill, medication refill.",0
+CTRL-025,"65yo female. Reports blood pressure check, medication refill, knee pain after exercise, request for lab work.",0
+CTRL-026,"44yo female. Reports mild back pain, request for lab work, skin rash on arm.",0
+CTRL-027,"67yo female. Reports knee pain after exercise, knee pain after exercise, request for lab work, annual physical exam.",0
+CTRL-028,"64yo female. Reports routine follow-up visit, knee pain after exercise, mild back pain, skin rash on arm.",0
+CTRL-029,"35yo female. Reports blood pressure check, skin rash on arm, routine follow-up visit.",0
+CTRL-030,"50yo female. Reports medication refill, medication refill, routine follow-up visit, routine follow-up visit.",0
+CTRL-031,"49yo female. Reports request for lab work, skin rash on arm, annual physical exam.",0
+CTRL-032,"49yo male. Reports knee pain after exercise, skin rash on arm, annual physical exam, medication refill.",0
+CTRL-033,"51yo female. Reports request for lab work, blood pressure check, blood pressure check.",0
+CTRL-034,"63yo female. Reports mild back pain, knee pain after exercise, annual physical exam, skin rash on arm.",0
+CTRL-035,"57yo female. Reports routine follow-up visit, request for lab work, skin rash on arm.",0
+CTRL-036,"41yo male. Reports medication refill, mild back pain, request for lab work.",0
+CTRL-037,"48yo female. Reports skin rash on arm, request for lab work, annual physical exam.",0
+CTRL-038,"57yo female. Reports routine follow-up visit, annual physical exam, skin rash on arm.",0
+CTRL-039,"52yo male. Reports skin rash on arm, mild back pain, annual physical exam.",0

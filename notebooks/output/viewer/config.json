@@ -1,0 +1,148 @@
+{
+  "ui": {
+    "title": "HACHI Demo: Flu Detection",
+    "encounter_display_name": "Patient",
+    "column_display_names": {
+      "patient_id": "Patient ID",
+      "y": "Flu Outcome"
+    }
+  },
+  "dataset": {
+    "id_column": "patient_id",
+    "note_column": "sentence",
+    "summary_column": "llm_output",
+    "metadata_columns": [
+      "y"
+    ]
+  },
+  "initializations": [
+    {
+      "id": 1,
+      "name": "Model 1",
+      "concept_prefix": "init_seed_1",
+      "concepts": [
+        "Does the note mention the patient having respiratory symptoms?",
+        "Does the note mention the patient having fever?"
+      ],
+      "coefficients": {
+        "Does the note mention the patient having respiratory symptoms?": 0.0010252578641208,
+        "Does the note mention the patient having fever?": 0.0016050154476421
+      },
+      "final_auc": 1.0,
+      "num_iterations": 3,
+      "auc_history": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "dendrogram_image": "images/dendrogram_model_1.png"
+    }
+  ],
+  "features": {
+    "show_summaries": true,
+    "show_concepts": true,
+    "train_test_split": false,
+    "use_concept_cards": false
+  },
+  "method_info": {
+    "prompts": {
+      "step1_summary": [
+        {
+          "filename": "keyphrases.txt",
+          "content": "You are extracting clinical factors from patient notes for predicting whether or not they have the flu.\n\nFrom the provided note, extract factors related to:\n- Patient symptoms that are negative or positive risk factors\n- Exam findings that are negative or positive risk factors\n\nFor each factor, provide the primary descriptor and synonyms. That is:\n1. The primary descriptor (exact or paraphrased from the note). Each descriptor should be 1-2 words.\n2. Synonyms or alternative phrasings. Separate items with commas\n3. Broader generalizations that capture similar concepts. Separate items with commas\n\nRULES:\n* Do NOT list any other characteristics about the patient that are not mentioned in the note. It MUST be mentioned in the note.\n* You MUST output at least one set of keyphrases for each patient. Aim for 3-5 keyphrases per patient.\n\nNote:\n\"{note}\"\n\nExample output format:\n{\n  \"reasoning\": \"Step-by-step reasoning through the note\",\n  \"keyphrases\": [\n    \"body chills, chills\",\n    \"swollen fingers, swelling\",\n    ...\n    ]\n}\n"
+        }
+      ],
+      "step2_extraction": [
+        {
+          "filename": "concept_questions.txt",
+          "content": "You will be given clinical notes and a series of yes/no questions. For each question, answer with 1 (yes) or 0 (no) if it is not.\n\nQuestions:\n{prompt_questions}\n\nClinical notes:\n{sentence}\n\nProvide your answers in the following JSON format:\n{\n  \"reasoning\": \"Brief explanation of your answers\",\n  \"extractions\": [\n    {\"question\": 0, \"reasoning\": \"why yes/no\", \"answer\": 1},\n    {\"question\": 1, \"reasoning\": \"why yes/no\", \"answer\": 0},\n    {\"question\": 2, \"reasoning\": \"why yes/no\", \"answer\": 1}\n  ]\n}\n\nAnswer all questions. Use 1 for yes, 0 for no. Output valid JSON only.\n"
+        }
+      ],
+      "step3_initialization": [
+        {
+          "filename": "baseline_init.txt",
+          "content": "We are fitting a concept bottleneck model (CBM) to predict whether or not a patient has the flu from their clinical notes. The goal is to identify interpretable yes/no concepts that clinicians can use to predict probability of having the flu.\n\nA meta-concept must be a yes/no question like \"Does the note mention the patient having...?\".\n\nGiven data analysis, these are the top phrases associated with flu:\n{top_features_df}\n\nYOUR TASK:\nPropose {max_meta_concepts} candidate meta-concepts for the CBM.\n\nPropose candidates in JSON format:\n{\n  \"reasoning\": \"Step-by-step explanation\",\n  \"concepts\": [\n    {\n      \"concept\": \"Does the note mention the patient having nausea?\",\n      \"is_risk_factor\": true,\n      \"words\": [\"nausea\", \"vomiting\"]\n    },\n    ...\n  ]\n}\n\nFinal answer:\n"
+        }
+      ],
+      "step4_generation": [
+        {
+          "filename": "bayesian_iter.txt",
+          "content": "We are fitting a concept bottleneck model (CBM) with 2 concepts to predict influenza (flu). We have 1 meta-concept so far:\n{meta_concepts}\n\nTo improve the CBM, these are the top phrases from the residual model:\n{top_features_df}\n\nA positive coefficient means higher flu risk. A negative coefficient means lower flu risk.\n\nCreate five candidates for the 2nd meta-concept. Be systematic and consider all listed concepts.\n\nPropose at least ten candidates in JSON format:\n{\n  \"reasoning\": \"Step-by-step explanation\",\n  \"concepts\": [\n    {\n      \"concept\": \"Does the note mention the patient having nausea?\",\n      \"is_risk_factor\": true,\n      \"words\": [\"vomiting\", \"nausea\"]\n    },\n    ...\n  ]\n}\n"
+        }
+      ]
+    },
+    "training_histories": {
+      "init_seed_1": {
+        "final_auc": 1.0,
+        "concepts": [
+          {
+            "text": "Does the note mention the patient having fever?",
+            "coefficient": 0.0016050154476421506,
+            "posterior_probability": 0.3333333333333333
+          },
+          {
+            "text": "Does the note mention the patient having respiratory symptoms?",
+            "coefficient": 0.0010252578641208238,
+            "posterior_probability": 0.6666666666666666
+          }
+        ],
+        "dendrogram_data": {
+          "concepts": [
+            {
+              "name": "high temperature",
+              "full_name": "Does the note mention the patient having a high temperature?",
+              "posterior_probability": 0.6666666666666666,
+              "index": 0
+            },
+            {
+              "name": "respiratory symptoms",
+              "full_name": "Does the note mention the patient having respiratory symptoms?",
+              "posterior_probability": 0.6666666666666666,
+              "index": 1
+            },
+            {
+              "name": "cough",
+              "full_name": "Does the note mention the patient having a cough?",
+              "posterior_probability": 0.3333333333333333,
+              "index": 2
+            },
+            {
+              "name": "fever",
+              "full_name": "Does the note mention the patient having fever?",
+              "posterior_probability": 0.3333333333333333,
+              "index": 3
+            }
+          ],
+          "linkage": [
+            [
+              0.0,
+              3.0,
+              0.0,
+              2.0
+            ],
+            [
+              2.0,
+              4.0,
+              0.14298359164890762,
+              3.0
+            ],
+            [
+              1.0,
+              5.0,
+              0.33581812269712896,
+              4.0
+            ]
+          ],
+          "has_clustering": true
+        },
+        "num_iterations": 3,
+        "auc_history": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "dendrogram_image": "images/dendrogram_model_1.png"
+      }
+    }
+  }
+}
