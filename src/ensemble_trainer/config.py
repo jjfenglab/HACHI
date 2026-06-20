@@ -17,7 +17,7 @@ class ModelConfig:
     learner_type: str = "count_l2"
     count_vectorizer: str = "count"
     residual_model_type: str = "l2"
-    final_model_type: str = "l1"
+    final_model_type: str = "l1_sklearn"
     inverse_penalty_param: float = 20000.0
     use_acc: bool = False
     cv: int = 5
@@ -38,6 +38,11 @@ class LLMConfig:
     llm_model_type: Optional[str] = None  # Will use llm_model if not specified
     llm_iter_type: Optional[str] = None
     llm_extraction_type: Optional[str] = None
+
+    # Local LLM support (OpenAI-compatible endpoints like vLLM, LM Studio)
+    base_url: Optional[str] = None
+    local_model_name: Optional[str] = None
+    timeout: int = 120
 
 
 @dataclass
@@ -125,6 +130,9 @@ class ConfigBuilder:
             llm_model_type=getattr(args, "llm_model_type", None),
             llm_iter_type=getattr(args, "llm_iter_type", None),
             llm_extraction_type=getattr(args, "llm_extraction_type", None),
+            base_url=getattr(args, "base_url", None),
+            local_model_name=getattr(args, "local_model_name", None),
+            timeout=getattr(args, "timeout", 120),
         )
 
         data_config = DataConfig(

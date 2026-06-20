@@ -45,7 +45,6 @@ async def test_concept_evolution_workflow(test_data, temp_dir, small_config, set
     current_shared_extractions = await trainer.feature_extraction_manager.extract_for_training(
         test_data,
         current_concept_names,
-        max_new_tokens=trainer.config.llm.max_new_tokens,
     )
 
     # Build train split for candidate generation
@@ -71,7 +70,6 @@ async def test_concept_evolution_workflow(test_data, temp_dir, small_config, set
     candidate_shared_extractions = await trainer.feature_extraction_manager.extract_for_training(
         test_data,
         candidate_names,
-        max_new_tokens=trainer.config.llm.max_new_tokens,
     )
 
     # Build candidate map

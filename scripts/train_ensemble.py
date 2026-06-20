@@ -123,6 +123,18 @@ def parse_args():
     parser.add_argument(
         "--use-api", action="store_true", default=True, help="Use API for LLM calls"
     )
+    parser.add_argument(
+        "--base-url", type=str, default=None,
+        help="Base URL for OpenAI-compatible endpoint (e.g. http://localhost:8000/v1)",
+    )
+    parser.add_argument(
+        "--local-model-name", type=str, default=None,
+        help="Model name to pass to local endpoint (e.g. Qwen/Qwen3-32B)",
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=120,
+        help="Timeout in seconds for LLM calls (increase for local models)",
+    )
 
     # Output parameters
     parser.add_argument(

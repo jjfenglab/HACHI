@@ -28,6 +28,9 @@ class KeyphraseConfig:
     index_col: Optional[int]
     llm_outputs_file: Optional[str]
     log_file: str
+    base_url: Optional[str] = None
+    local_model_name: Optional[str] = None
+    timeout: int = 120
     
     def __post_init__(self) -> None:
         """Validate and normalize configuration after initialization"""

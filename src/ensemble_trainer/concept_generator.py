@@ -161,7 +161,6 @@ class StandardConceptGenerator(BaseConceptGenerator):
         candidate_concept_dicts = concept_selector.query_for_new_cand(
             iter_llm_prompt,
             top_feat_names,
-            max_new_tokens=self.config.llm.max_new_tokens,
         )
 
         return candidate_concept_dicts

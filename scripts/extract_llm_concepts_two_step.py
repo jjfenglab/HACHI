@@ -115,6 +115,18 @@ def parse_args(args):
         default="train",
         help="Which partition to process: train, test, or all data",
     )
+    parser.add_argument(
+        "--base-url", type=str, default=None,
+        help="Base URL for OpenAI-compatible endpoint (e.g. http://localhost:8000/v1)",
+    )
+    parser.add_argument(
+        "--local-model-name", type=str, default=None,
+        help="Model name to pass to local endpoint (e.g. Qwen/Qwen3-32B)",
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=120,
+        help="Timeout in seconds for LLM calls (increase for local models)",
+    )
     args = parser.parse_args()
     assert args.use_api
     return args
@@ -209,6 +221,9 @@ def main(args):
         model_type=args.llm_model_type,
         error_handler=ErrorCallbackHandler(logger),
         logging=logger,
+        timeout=args.timeout,
+        base_url=args.base_url,
+        local_model_name=args.local_model_name,
     )
 
     group_ids, sentences = common.split_sentences_by_id(
