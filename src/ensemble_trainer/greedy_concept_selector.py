@@ -14,6 +14,7 @@ from sklearn.metrics import roc_auc_score
 
 import src.common as common
 from src.llm_response_types import CandidateConcepts
+from src.llm_utils import SYSTEM_PROMPT
 from src.training_history import TrainingHistory
 
 from .model_utils import fit_residual
@@ -265,10 +266,14 @@ class GreedyConceptSelector:
         Returns:
             List of candidate concept dictionaries
         """
-        llm_response = self.llm_iter.get_output(
-            iter_llm_prompt,
-            max_new_tokens=max_new_tokens,
-            response_model=CandidateConcepts,
+        llm_response = self.llm_iter.run(
+            [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": iter_llm_prompt},
+            ],
+            max_tokens=max_new_tokens,
+            response_format=CandidateConcepts,
+            strict_response_format=True,
         )
         candidate_concept_dicts = llm_response.to_dicts(
             default_prior=self.default_prior

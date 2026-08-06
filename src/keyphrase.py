@@ -3,7 +3,6 @@ Keyphrase extraction class for LLM-based concept extraction
 """
 
 import asyncio
-import json
 import logging
 from pathlib import Path
 from typing import Any, List
@@ -12,19 +11,16 @@ import numpy as np
 import pandas as pd
 import torch
 from dotenv import load_dotenv
+from lab_llm import LLMApi
 
+from src.ensemble_trainer.config import LLMConfig
 from src.llm_response_types import ProtoConceptExtract
-from lab_llm.constants import LLMModel
-from lab_llm.dataset import ImageDataset, TextDataset
-from lab_llm.duckdb_handler import DuckDBHandler
-from lab_llm.error_callback_handler import ErrorCallbackHandler
-from lab_llm.llm_api import LLMApi
-from lab_llm.llm_cache import LLMCache
+from src.llm_utils import create_llm_clients, run_prompts_batched
 
 
 class Keyphrase:
-    """Extract keyphrases from text or images using LLM
-    
+    """Extract keyphrases from text using LLM
+
     This class provides a clean interface for extracting keyphrases from datasets
     using large language models. It handles caching, batching, and error handling.
     
@@ -75,8 +71,8 @@ class Keyphrase:
 
         # Extract keyphrases
         prompt_template = self._load_and_prepare_prompt()
-        dataset = self._create_dataset(data_df, train_idxs, prompt_template)
-        llm_outputs = self._get_llm_outputs(dataset)
+        prompts = self._build_prompts(data_df, train_idxs, prompt_template)
+        llm_outputs = self._get_llm_outputs(prompts)
         llm_output_strs = self._format_outputs(llm_outputs)
         
         # Update DataFrame
@@ -119,16 +115,19 @@ class Keyphrase:
     
     def _initialize_llm(self) -> None:
         """Initialize LLM API with caching"""
+        if self.config.is_image:
+            raise NotImplementedError(
+                "image extraction dropped in llm-api v1 migration"
+            )
+
         load_dotenv()
-        cache = LLMCache(DuckDBHandler(self.config.cache_file))
-        
-        self.llm = LLMApi(
-            cache,
-            seed=self.config.seed,
-            model_type=LLMModel(name=self.config.llm_model_type),
-            error_handler=ErrorCallbackHandler(self.logger),
-            logging=logging,
-        )
+        self.llm = create_llm_clients(
+            LLMConfig(
+                llm_model=self.config.llm_model_type,
+                cache_file=self.config.cache_file,
+            ),
+            logger=self.logger,
+        )["extraction"]
         self.logger.info(f"Initialized LLM: {self.config.llm_model_type}")
     
     def _load_and_prepare_prompt(self) -> str:
@@ -144,57 +143,48 @@ class Keyphrase:
         
         return prompt_template
     
-    def _create_dataset(
+    def _build_prompts(
         self,
         data_df: pd.DataFrame,
         train_idxs: np.ndarray,
         prompt_template: str
-    ) -> Any:
-        """Create appropriate dataset based on data type"""
+    ) -> List[str]:
+        """Fill the prompt template with the text of each row to process"""
         subset_df = data_df.iloc[train_idxs]
-        
-        if self.config.is_image:
-            if "image_path" not in subset_df.columns:
-                raise ValueError("image_path column required for image data")
-            dataset = ImageDataset(subset_df.image_path.tolist(), prompt_template)
-            self.logger.info(f"Created ImageDataset with {len(dataset)} images")
-        else:
-            if self.config.text_column not in subset_df.columns:
-                raise ValueError(
-                    f"Column '{self.config.text_column}' not found in DataFrame"
-                )
-            sentences = subset_df[self.config.text_column].to_numpy()
-            prompts = [
-                prompt_template.replace(self.config.prompt_placeholder, str(s)) 
-                for s in sentences
-            ]
-            dataset = TextDataset(prompts)
-            self.logger.info(
-                f"Created TextDataset with {len(dataset)} texts "
-                f"from column '{self.config.text_column}'"
+
+        if self.config.text_column not in subset_df.columns:
+            raise ValueError(
+                f"Column '{self.config.text_column}' not found in DataFrame"
             )
-        
-        return dataset
-    
-    def _get_llm_outputs(self, dataset: Any) -> List[Any]:
+
+        sentences = subset_df[self.config.text_column].to_numpy()
+        prompts = [
+            prompt_template.replace(self.config.prompt_placeholder, str(s))
+            for s in sentences
+        ]
+        self.logger.info(
+            f"Built {len(prompts)} prompts from column '{self.config.text_column}'"
+        )
+        return prompts
+
+    def _get_llm_outputs(self, prompts: List[str]) -> List[Any]:
         """Get outputs from LLM API"""
         self.logger.info(
-            f"Processing {len(dataset)} examples with "
+            f"Processing {len(prompts)} examples with "
             f"batch_size={self.config.batch_size}, "
             f"max_tokens={self.config.num_new_tokens}"
         )
-        
-        llm_outputs = asyncio.run(
-            self.llm.get_outputs(
-                dataset,
-                max_new_tokens=self.config.num_new_tokens,
+
+        return asyncio.run(
+            run_prompts_batched(
+                self.llm,
+                prompts,
+                ProtoConceptExtract,
                 batch_size=self.config.batch_size,
-                is_image=self.config.is_image,
-                response_model=ProtoConceptExtract,
+                max_new_tokens=self.config.num_new_tokens,
+                desc="keyphrase extraction",
             )
         )
-        
-        return llm_outputs
     
     def _format_outputs(self, llm_outputs: List[Any]) -> List[str]:
         """Format LLM outputs into comma-separated keyphrase strings"""

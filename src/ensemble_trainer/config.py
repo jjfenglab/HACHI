@@ -31,13 +31,7 @@ class LLMConfig:
     llm_model: str = "gpt-4o-mini"
     max_tokens: int = 600
     max_new_tokens: int = 5000
-    cache_file: str = "cache.db"
-    use_api: bool = True
-
-    # Optional fields for different LLM types (for backward compatibility)
-    llm_model_type: Optional[str] = None  # Will use llm_model if not specified
-    llm_iter_type: Optional[str] = None
-    llm_extraction_type: Optional[str] = None
+    cache_file: str = "cache_v1api.db"
 
 
 @dataclass
@@ -120,11 +114,7 @@ class ConfigBuilder:
             llm_model=getattr(args, "llm_model", "gpt-4o-mini"),
             max_tokens=getattr(args, "max_tokens", 600),
             max_new_tokens=getattr(args, "max_new_tokens", 5000),
-            cache_file=getattr(args, "cache_file", "cache.db"),
-            use_api=getattr(args, "use_api", True),
-            llm_model_type=getattr(args, "llm_model_type", None),
-            llm_iter_type=getattr(args, "llm_iter_type", None),
-            llm_extraction_type=getattr(args, "llm_extraction_type", None),
+            cache_file=getattr(args, "cache_file", "cache_v1api.db"),
         )
 
         data_config = DataConfig(

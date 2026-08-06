@@ -16,7 +16,6 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 sys.path.append(os.getcwd())
-sys.path.append("llm-api-main")
 
 from src.ensemble_trainer import EnsembleTrainer
 import src.ensemble_trainer.data_operations as data_operations
