@@ -31,10 +31,10 @@ NUM_GREEDY_EPOCHS = 2
 # USING VERSA
 LLM_MODELS = [
     # TODO: which one?
-    "azure/gpt-4o-2024-08-06",
+    "azure/gpt-4o-2024-11-20",
 ]
 LLM_DICT = {
-    "azure/gpt-4o-2024-08-06": {
+    "azure/gpt-4o-2024-11-20": {
         "api": True,  # using API
         "batch_size": 20,
         "max_extract_length": None,
