@@ -105,6 +105,10 @@ def setup_trainer_with_mocks(temp_dir):
         # Initialize trainer state for testing
         trainer._initialize_state()
 
+        # Mirror _setup_training_environment, which creates the selectors before
+        # the baseline phase runs.
+        trainer._create_greedy_concept_selectors()
+
         # Monkey patch _setup_llm_clients to preserve our mock
         def mock_setup_llm_clients(self):
             """Mock version of _setup_llm_clients that preserves the mock LLM."""
