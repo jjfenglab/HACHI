@@ -14,7 +14,7 @@ Import("env")
 localenv = env.Clone()
 
 # Cache configuration
-CACHE_FILE = "peds_cache.db"
+CACHE_FILE = "peds_cache_v1api.db"
 
 # Set up state
 nest = SConsWrap(Nest(), localenv["output"], alias_environment=localenv)
@@ -31,10 +31,10 @@ NUM_GREEDY_EPOCHS = 2
 # USING VERSA
 LLM_MODELS = [
     # TODO: which one?
-    "gpt-4o-2024-08-06",
+    "azure/gpt-4o-2024-08-06",
 ]
 LLM_DICT = {
-    "gpt-4o-2024-08-06": {
+    "azure/gpt-4o-2024-08-06": {
         "api": True,  # using API
         "batch_size": 20,
         "max_extract_length": None,
@@ -162,7 +162,7 @@ def make_notes_data(env, outdir, c):
 
     return env.Command(targets, [], " ".join(map(str, cmd)))
 
-nest.add("llm_model", LLM_MODELS)
+nest.add("llm_model", LLM_MODELS, label_func=lambda c: c.split("/")[-1])
 nest.add(
     "replicate_seed",
     [

@@ -78,16 +78,33 @@ pip install -r requirements.txt
 
 4. Configure LLM API access:
 
-Create a `.env` file in the project root with your API credentials:
+Create a `.env` file in the project root with credentials for the provider you plan to use.
+The provider is selected by the prefix of the model name you pass to `--llm-model` /
+`--llm-model-type` (e.g. `gpt-4o-mini`, `azure/gpt-4o-2024-08-06`, `bedrock/...`):
+
 ```bash
-# For OpenAI
+# OpenAI direct (no prefix, e.g. gpt-4o-mini)
 OPENAI_API_KEY=your-api-key-here
 
-# For Anthropic
+# Anthropic direct (anthropic/... models)
 ANTHROPIC_API_KEY=your-api-key-here
+
+# UCSF Versa, Azure OpenAI models (azure/... models)
+VERSA_API_KEY=your-versa-key-here
+VERSA_ENDPOINT=https://your-versa-endpoint
+VERSA_API_VERSION=2024-12-01-preview  # optional
+
+# UCSF Versa, Claude on Bedrock (bedrock/... models)
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-west-2
+VERSA_ENDPOINT=https://your-versa-endpoint
 ```
 
-The framework uses the `llm-api` package for LLM interactions. See the [llm documentation](https://github.com/jjfenglab/llm-api) for additional configuration options.
+The framework uses the `llm-api` package for LLM interactions, which routes calls through
+[litellm](https://github.com/BerriAI/litellm) and therefore uses litellm's standard
+environment variable names. See the [llm-api documentation](https://github.com/jjfenglab/llm-api)
+for additional configuration options.
 
 ---
 
@@ -118,7 +135,7 @@ config = EnsembleConfig(
     init_seeds=[1, 2, 3],  # Multiple seeds for ensemble diversity
     sampling_method="data_split",
     model=ModelConfig(residual_model_type="l2"),
-    llm=LLMConfig(llm_model="gpt-4o-mini", cache_file="cache.db"),
+    llm=LLMConfig(llm_model="gpt-4o-mini", cache_file="cache_v1api.db"),
     data=DataConfig(text_summary_column="note_text"),
     training=TrainingConfig(num_epochs=3, batch_size=20),
     concept=ConceptConfig(
