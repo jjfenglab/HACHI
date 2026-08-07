@@ -32,6 +32,7 @@ class LLMConfig:
     max_tokens: int = 600
     max_new_tokens: int = 5000
     cache_file: str = "cache_v1api.db"
+    batch_size: int = 20
 
 
 @dataclass

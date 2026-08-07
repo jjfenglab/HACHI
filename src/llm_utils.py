@@ -49,7 +49,7 @@ def create_llm_clients(
             model=config.llm_model,
             seed=10,
             timeout=120,
-            num_retries=2,
+            num_retries=1,
         )
     )
     return {"iter": api, "extraction": api}
