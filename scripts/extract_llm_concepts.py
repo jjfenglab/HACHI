@@ -19,7 +19,7 @@ def parse_args(args):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--cache-file", type=str, default="cache.db")
+    parser.add_argument("--cache-file", type=str, default="cache_v1api.db")
     parser.add_argument(
         "--prompt-file", type=str, help="file with prompt for extracting concepts"
     )

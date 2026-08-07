@@ -1,97 +1,123 @@
 """
 LLM client utilities for creating and managing LLM API instances.
 
-This module is separate from common.py to avoid circular imports.
+This module is separate from common.py to avoid circular imports, and must not
+import from src.ensemble_trainer at runtime for the same reason.
 """
 
 import logging
-import os
-import sys
+from typing import TYPE_CHECKING, Any, List, Optional
 
-sys.path.append(os.getcwd())
-sys.path.append("llm-api-main")
+import litellm
+from lab_llm import (
+    CachingCompletion,
+    CompletionFunction,
+    ErrorTracker,
+    LLMApi,
+    wrap_completion_function,
+)
+from lab_llm.versa import make_versa_claude_completion, make_versa_openai_completion
+from pydantic import BaseModel
+from tqdm import tqdm
 
-from lab_llm.constants import LLMModel
-from lab_llm.duckdb_handler import DuckDBHandler
-from lab_llm.constants import LLMModel
-from lab_llm.error_callback_handler import ErrorCallbackHandler
-from lab_llm.llm_api import LLMApi
-from lab_llm.llm_cache import LLMCache
+if TYPE_CHECKING:
+    from src.ensemble_trainer.config import LLMConfig
 
-from src.ensemble_trainer.config import LLMConfig
+SYSTEM_PROMPT = "You are a helpful assistant"
 
 
-def create_llm_clients(config: LLMConfig, logger=None) -> dict[str, LLMApi]:
+def _completion_for(model: str) -> CompletionFunction:
+    """Pick the provider completion function implied by the model prefix."""
+    if model.startswith("azure/"):
+        return make_versa_openai_completion()
+    if model.startswith("bedrock/"):
+        return make_versa_claude_completion()
+    return litellm.completion
+
+
+def create_llm_clients(
+    config: "LLMConfig", logger: Optional[logging.Logger] = None
+) -> dict[str, LLMApi]:
     """
     Create LLM clients from a structured configuration object.
+
+    Uses llm_iter_type for concept proposal ("iter") and llm_extraction_type
+    for concept extraction ("extraction") if specified, otherwise falls back
+    to llm_model for both.
     """
-    if logger is None:
-        logger = logging.getLogger()
+    iter_model = config.llm_iter_type or config.llm_model
+    extraction_model = config.llm_extraction_type or config.llm_model
 
-    cache = LLMCache(DuckDBHandler(config.cache_file))
+    cache = CachingCompletion(config.cache_file)
+    error_tracker = ErrorTracker(logger or logging.getLogger(__name__))
 
-    # Determine which model types to use
-    # Priority: specific type > llm_model > default
-    llm_model_type = config.llm_model_type or config.llm_model
-    llm_iter_type = config.llm_iter_type
-    llm_extraction_type = config.llm_extraction_type
-
-    # Convert model names to types if needed
-    if llm_model_type:
-        llm_model_type = LLMModel(name=llm_model_type)
-    if llm_iter_type:
-        llm_model_type = LLMModel(name=llm_iter_type)
-    if llm_extraction_type:
-        llm_extraction_type = LLMModel(name=llm_extraction_type)
-    # Create LLM clients based on configuration
-    if llm_model_type and not (llm_iter_type or llm_extraction_type):
-        # Single model for both iteration and extraction
-        llm = LLMApi(
-            cache,
+    iter_api = LLMApi(
+        wrap_completion_function(
+            _completion_for(iter_model),
+            cache=cache,
+            error_tracker=error_tracker,
+            model=iter_model,
             seed=10,
-            model_type=llm_model_type,
-            error_handler=ErrorCallbackHandler(logger),
-            logging=logger,
             timeout=120,
+            num_retries=1,
         )
-        return {"iter": llm, "extraction": llm}
-    else:
-        # Separate models for iteration and extraction
-        llm_iter = LLMApi(
-            cache,
-            seed=10,
-            model_type=llm_iter_type or llm_model_type,
-            error_handler=ErrorCallbackHandler(logger),
-            logging=logger,
-            timeout=120,
-        )
-        llm_extraction = LLMApi(
-            cache,
-            seed=10,
-            model_type=llm_extraction_type or llm_model_type,
-            error_handler=ErrorCallbackHandler(logger),
-            logging=logger,
-            timeout=120,
-        )
-        return {"iter": llm_iter, "extraction": llm_extraction}
-
-
-def load_llms(args, logger=None) -> dict[str, LLMApi]:
-    """
-    Legacy function for backward compatibility.
-
-    New code should use create_llm_clients() with an LLMConfig object instead.
-    """
-    assert args.cache_file is not None
-
-    # Convert args to LLMConfig object and delegate to new function
-    config = LLMConfig(
-        llm_model=getattr(args, "llm_model", "gpt-4o-mini"),
-        cache_file=args.cache_file,
-        use_api=getattr(args, "use_api", True),
-        llm_model_type=getattr(args, "llm_model_type", None),
-        llm_iter_type=getattr(args, "llm_iter_type", None),
-        llm_extraction_type=getattr(args, "llm_extraction_type", None),
     )
 
-    return create_llm_clients(config, logger)
+    if extraction_model == iter_model:
+        extraction_api = iter_api
+    else:
+        extraction_api = LLMApi(
+            wrap_completion_function(
+                _completion_for(extraction_model),
+                cache=cache,
+                error_tracker=error_tracker,
+                model=extraction_model,
+                seed=10,
+                timeout=120,
+                num_retries=1,
+            )
+        )
+
+    return {"iter": iter_api, "extraction": extraction_api}
+
+
+async def run_prompts_batched(
+    llm: LLMApi,
+    prompts: List[str],
+    response_format: type[BaseModel],
+    batch_size: int,
+    max_new_tokens: int,
+    desc: str = "LLM batches",
+) -> List[Any]:
+    """
+    Run prompts through the LLM in chunks, returning one parsed response per prompt.
+
+    Per-item failures (API errors, response validation failures) become None so
+    that a single bad response does not lose the whole batch.
+    """
+    messages_list = [
+        [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        for prompt in prompts
+    ]
+
+    outputs = []
+    for start in tqdm(range(0, len(messages_list), batch_size), desc=desc):
+        results = await llm.run_batch(
+            messages_list[start : start + batch_size],
+            max_parallel_jobs=batch_size,
+            max_tokens=max_new_tokens,
+            temperature=0,
+            response_format=response_format,
+            strict_response_format=True,
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                logging.warning("LLM call failed, dropping response: %s", result)
+                outputs.append(None)
+            else:
+                outputs.append(result)
+    return outputs

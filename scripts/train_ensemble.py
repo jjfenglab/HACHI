@@ -118,10 +118,7 @@ def parse_args():
         "--llm-model", type=str, default="gpt-4o-mini", help="LLM model to use"
     )
     parser.add_argument(
-        "--cache-file", type=str, default="cache.db", help="Path to cache file"
-    )
-    parser.add_argument(
-        "--use-api", action="store_true", default=True, help="Use API for LLM calls"
+        "--cache-file", type=str, default="cache_v1api.db", help="Path to cache file"
     )
 
     # Output parameters

@@ -13,11 +13,10 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler, label_binarize
 
 sys.path.append(os.getcwd())
-sys.path.append("llm-api-main")
-from lab_llm.dataset import TextDataset
-from lab_llm.llm_api import LLMApi
+from lab_llm import LLMApi
 
 from src.llm_response_types import ExtractResponseList
+from src.llm_utils import run_prompts_batched
 
 TABULAR_PREFIX = "Tabular feature: "
 
@@ -302,79 +301,25 @@ def extract_features_by_llm_grouped(
     batch_size=1,
     batch_concept_size=20,
     max_new_tokens=5000,
-    max_retries: int = 1,
     max_section_length: int = None,
     sentence_column: str = "sentence",
 ) -> dict[str, np.ndarray]:
-    prior_concepts = set(all_extracted_features_dict.keys())
-    logging.info(f"all_extracted_features_dict {prior_concepts}")
-    concepts_to_extract = []
-    for concept_dict in meta_concept_dicts:
-        concept = concept_dict["concept"]
-        if (
-            not is_tabular(concept)
-            and concept not in concepts_to_extract
-            and concept not in prior_concepts
-        ):
-            concepts_to_extract.append(concept)
-
-    logging.info(f"LEN CONCEPTS {len(concepts_to_extract)}")
-
-    logging.info(f"dset_train {dset_train.shape}")
-    for i in range(0, len(concepts_to_extract), batch_concept_size):
-        # Get the batch of concepts to annotate
-        batch_concepts_to_extract = concepts_to_extract[i : i + batch_concept_size]
-
-        # Load prompt for extracting concepts
-        prompt_file = os.path.abspath(os.path.join(os.getcwd(), prompt_file))
-        with open(prompt_file, "r") as file:
-            prompt_template = file.read()
-
-        # Fill in concept questions
-        prompt_questions = ""
-        for idx, concept in enumerate(batch_concepts_to_extract):
-            prompt_questions += f"{idx + 1} - {concept}" + "\n"
-        prompt_template = prompt_template.replace(
-            "{prompt_questions}", prompt_questions
+    """Synchronous wrapper; use the _async variant from inside a running event loop."""
+    return asyncio.run(
+        extract_features_by_llm_grouped_async(
+            llm,
+            dset_train,
+            meta_concept_dicts,
+            prompt_file,
+            all_extracted_features_dict=all_extracted_features_dict,
+            extraction_file=extraction_file,
+            batch_size=batch_size,
+            batch_concept_size=batch_concept_size,
+            max_new_tokens=max_new_tokens,
+            max_section_length=max_section_length,
+            sentence_column=sentence_column,
         )
-        logging.debug(prompt_template)
-
-        logging.info(f"dset_train.shape[0] {dset_train.shape[0]}")
-        group_ids, sentences = split_sentences_by_id(
-            dset_train, max_section_length, sentence_column
-        )
-        prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
-        dataset = TextDataset(prompts)
-
-        llm_outputs = asyncio.run(
-            llm.get_outputs(
-                dataset,
-                batch_size=batch_size,
-                max_new_tokens=max_new_tokens,
-                temperature=0,
-                max_retries=max_retries,
-                response_model=ExtractResponseList,
-            )
-        )
-
-        # extract responses
-        extracted_llm_outputs = _collate_extractions_by_group(
-            llm_outputs, group_ids, len(batch_concepts_to_extract)
-        )
-
-        # fill in dictionary with extractions
-        for idx, concept in enumerate(batch_concepts_to_extract):
-            extracted_features = extracted_llm_outputs[:, idx : idx + 1]
-            logging.info(
-                "concept %s, prevalence %f", concept, np.mean(extracted_features)
-            )
-            all_extracted_features_dict[concept] = extracted_features
-
-        if extraction_file is not None:
-            with open(extraction_file, "wb") as f:
-                pickle.dump(all_extracted_features_dict, f)
-
-    return all_extracted_features_dict
+    )
 
 
 async def extract_features_by_llm_grouped_async(
@@ -387,16 +332,9 @@ async def extract_features_by_llm_grouped_async(
     batch_size=1,
     batch_concept_size=20,
     max_new_tokens=5000,
-    max_retries: int = 1,
     max_section_length: int = None,
     sentence_column: str = "sentence",
 ) -> dict[str, np.ndarray]:
-    """
-    Async version of extract_features_by_llm_grouped.
-
-    This version uses await instead of asyncio.run() and is designed to be called
-    from within an already running event loop (e.g., from async functions).
-    """
     prior_concepts = set(all_extracted_features_dict.keys())
     logging.info(f"all_extracted_features_dict {prior_concepts}")
     concepts_to_extract = []
@@ -435,15 +373,14 @@ async def extract_features_by_llm_grouped_async(
             dset_train, max_section_length, sentence_column
         )
         prompts = [prompt_template.replace("{sentence}", s) for s in sentences]
-        dataset = TextDataset(prompts)
 
-        llm_outputs = await llm.get_outputs(
-            dataset,
+        llm_outputs = await run_prompts_batched(
+            llm,
+            prompts,
+            ExtractResponseList,
             batch_size=batch_size,
             max_new_tokens=max_new_tokens,
-            temperature=0,
-            max_retries=max_retries,
-            response_model=ExtractResponseList,
+            desc="concept extraction",
         )
 
         # extract responses

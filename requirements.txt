@@ -78,15 +78,10 @@ jupyterlab==4.4.7
 jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
 kiwisolver==1.4.7
-lab_llm @ git+https://github.com/jjfenglab/llm-api.git@f541b3a57f9edc50380e56d81ff3f3bee6ab1963
-langchain==0.3.27
-langchain-aws==0.2.32
-langchain-core==0.3.76
-langchain-openai==0.3.33
-langchain-text-splitters==0.3.11
+lab_llm @ git+https://github.com/jjfenglab/llm-api.git@batch-error-handling
 langcodes==3.4.1
-langsmith==0.4.27
 language_data==1.2.0
+litellm>=1.83.1
 marisa-trie==1.2.1
 MarkupSafe==3.0.2
 matplotlib==3.9.3

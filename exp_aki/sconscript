@@ -1,3 +1,6 @@
+"""
+Experiment for reproducing experiments, but must be run with the npj-digital-medicine-2026 release
+"""
 import os
 from os.path import join as path_join
 
