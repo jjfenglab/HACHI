@@ -40,19 +40,45 @@ def create_llm_clients(
 ) -> dict[str, LLMApi]:
     """
     Create LLM clients from a structured configuration object.
+
+    Uses llm_iter_type for concept proposal ("iter") and llm_extraction_type
+    for concept extraction ("extraction") if specified, otherwise falls back
+    to llm_model for both.
     """
-    api = LLMApi(
+    iter_model = config.llm_iter_type or config.llm_model
+    extraction_model = config.llm_extraction_type or config.llm_model
+
+    cache = CachingCompletion(config.cache_file)
+    error_tracker = ErrorTracker(logger or logging.getLogger(__name__))
+
+    iter_api = LLMApi(
         wrap_completion_function(
-            _completion_for(config.llm_model),
-            cache=CachingCompletion(config.cache_file),
-            error_tracker=ErrorTracker(logger or logging.getLogger(__name__)),
-            model=config.llm_model,
+            _completion_for(iter_model),
+            cache=cache,
+            error_tracker=error_tracker,
+            model=iter_model,
             seed=10,
             timeout=120,
             num_retries=1,
         )
     )
-    return {"iter": api, "extraction": api}
+
+    if extraction_model == iter_model:
+        extraction_api = iter_api
+    else:
+        extraction_api = LLMApi(
+            wrap_completion_function(
+                _completion_for(extraction_model),
+                cache=cache,
+                error_tracker=error_tracker,
+                model=extraction_model,
+                seed=10,
+                timeout=120,
+                num_retries=1,
+            )
+        )
+
+    return {"iter": iter_api, "extraction": extraction_api}
 
 
 async def run_prompts_batched(
