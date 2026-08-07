@@ -95,17 +95,19 @@ class Keyphrase:
         return data_df
     
     def _setup_logging(self) -> logging.Logger:
-        """Configure logging"""
-        log_path = Path(self.config.log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        logging.basicConfig(
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
-            filename=self.config.log_file, 
-            level=logging.INFO,
-            force=True
-        )
-        return logging.getLogger(__name__)
+        """Logger writing to config.log_file if set, else propagating to the caller's logging config; never touches root handlers."""
+        logger = logging.getLogger(__name__)
+        if self.config.log_file:
+            log_path = Path(self.config.log_file)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            handler = logging.FileHandler(self.config.log_file)
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            )
+            logger.addHandler(handler)
+            logger.setLevel(logging.INFO)
+            logger.propagate = False
+        return logger
     
     def _set_random_seeds(self) -> None:
         """Set random seeds for reproducibility"""
