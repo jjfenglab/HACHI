@@ -14,7 +14,7 @@ Import("env")
 localenv = env.Clone()
 
 # Cache configuration
-CACHE_FILE = "aki_cache_v1api.db"
+CACHE_FILE = "aki_cache.db"
 
 # Set up state
 nest = SConsWrap(Nest(), localenv["output"], alias_environment=localenv)
@@ -28,11 +28,11 @@ NUM_GREEDY_EPOCHS = 1
 
 # USING VERSA MODELS
 LLM_MODELS = [
-    "azure/gpt-4o-2024-11-20",
+    "gpt-4o-2024-08-06",
 ]
 
 LLM_DICT = {
-    "azure/gpt-4o-2024-11-20": {
+    "gpt-4o-2024-08-06": {
         "api": True,  # using API
         "batch_size": 20,
         "max_extract_length": None,
@@ -158,7 +158,7 @@ def train_test_split(env, outdir, c):
 
     return env.Command(targets, sources, " ".join(map(str, cmd)))
 
-nest.add("llm_model", LLM_MODELS, label_func=lambda c: c.split("/")[-1])
+nest.add("llm_model", LLM_MODELS)
 nest.add_aggregate("llm_concept_extract", str)
 
 nest.add("extraction_prompt", ["aki_keyphrases"])
