@@ -5,7 +5,9 @@ This module is separate from common.py to avoid circular imports, and must not
 import from src.ensemble_trainer at runtime for the same reason.
 """
 
+import base64
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Optional
 
 import litellm
@@ -81,6 +83,24 @@ def create_llm_clients(
     return {"iter": iter_api, "extraction": extraction_api}
 
 
+def encode_image_data_uri(image_path: str) -> str:
+    """Base64 data-URI for a local image file, media type inferred from the suffix."""
+    suffix = Path(image_path).suffix.lower().lstrip(".")
+    media_type = "jpeg" if suffix == "jpg" else suffix
+    data = base64.b64encode(Path(image_path).read_bytes()).decode()
+    return f"data:image/{media_type};base64,{data}"
+
+
+def _user_content(prompt: str, image_path: Optional[str]) -> Any:
+    """OpenAI-style user content: plain string, or text + image content parts."""
+    if image_path is None:
+        return prompt
+    return [
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": encode_image_data_uri(image_path)}},
+    ]
+
+
 async def run_prompts_batched(
     llm: LLMApi,
     prompts: List[str],
@@ -88,19 +108,24 @@ async def run_prompts_batched(
     batch_size: int,
     max_new_tokens: int,
     desc: str = "LLM batches",
+    image_paths: Optional[List[str]] = None,
 ) -> List[Any]:
     """
     Run prompts through the LLM in chunks, returning one parsed response per prompt.
 
-    Per-item failures (API errors, response validation failures) become None so
-    that a single bad response does not lose the whole batch.
+    If image_paths is given (one local path per prompt), each image is attached to
+    its prompt as a base64 content part. Per-item failures (API errors, response
+    validation failures) become None so that a single bad response does not lose
+    the whole batch.
     """
+    if image_paths is not None:
+        assert len(image_paths) == len(prompts)
     messages_list = [
         [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": _user_content(prompt, image_paths[i] if image_paths else None)},
         ]
-        for prompt in prompts
+        for i, prompt in enumerate(prompts)
     ]
 
     outputs = []
