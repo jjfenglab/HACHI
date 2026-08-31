@@ -120,6 +120,7 @@ class ConfigBuilder:
             max_tokens=getattr(args, "max_tokens", 600),
             max_new_tokens=getattr(args, "max_new_tokens", 5000),
             cache_file=getattr(args, "cache_file", "cache_v1api.db"),
+            batch_size=getattr(args, "batch_size", 20),
         )
 
         data_config = DataConfig(
