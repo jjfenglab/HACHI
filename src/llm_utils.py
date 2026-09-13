@@ -88,8 +88,9 @@ async def run_prompts_batched(
     batch_size: int,
     max_new_tokens: int,
     desc: str = "LLM batches",
-    num_retries: int = 2,
+    num_retries: int = 0,
     retry_delay_seconds: int = 60,
+    error_if_missing: bool = False
 ) -> List[Any]:
     """
     Run prompts through the LLM in chunks, returning one parsed response per prompt.
@@ -151,7 +152,7 @@ async def run_prompts_batched(
             )
             await asyncio.sleep(retry_delay_seconds)
 
-    if pending_indices:
+    if error_if_missing and pending_indices:
         raise RuntimeError(
             f"LLM calls failed for {len(pending_indices)} prompts after "
             f"{num_retries + 1} attempts: indices {pending_indices}"
