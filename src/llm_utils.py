@@ -88,13 +88,17 @@ async def run_prompts_batched(
     batch_size: int,
     max_new_tokens: int,
     desc: str = "LLM batches",
+    num_retries: int = 2,
+    retry_delay_seconds: int = 60,
 ) -> List[Any]:
     """
     Run prompts through the LLM in chunks, returning one parsed response per prompt.
 
-    Per-item failures (API errors, response validation failures) become None so
-    that a single bad response does not lose the whole batch.
+    Retries failed prompts up to num_retries times with retry_delay_seconds between
+    attempts. Raises RuntimeError if any prompt fails after all retries.
     """
+    import asyncio
+
     messages_list = [
         [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -103,21 +107,54 @@ async def run_prompts_batched(
         for prompt in prompts
     ]
 
-    outputs = []
-    for start in tqdm(range(0, len(messages_list), batch_size), desc=desc):
-        results = await llm.run_batch(
-            messages_list[start : start + batch_size],
-            max_parallel_jobs=batch_size,
-            max_tokens=max_new_tokens,
-            temperature=0,
-            response_format=response_format,
-            strict_response_format=True,
-            return_exceptions=True,
+    outputs = [None] * len(prompts)
+    pending_indices = list(range(len(prompts)))
+
+    for attempt in range(num_retries + 1):
+        if not pending_indices:
+            break
+
+        pending_messages = [messages_list[i] for i in pending_indices]
+        failed_indices = []
+
+        for batch_start in tqdm(
+            range(0, len(pending_messages), batch_size),
+            desc=f"{desc} (attempt {attempt + 1}/{num_retries + 1})",
+        ):
+            batch_messages = pending_messages[batch_start : batch_start + batch_size]
+            batch_pending_indices = pending_indices[batch_start : batch_start + batch_size]
+
+            results = await llm.run_batch(
+                batch_messages,
+                max_parallel_jobs=batch_size,
+                max_tokens=max_new_tokens,
+                temperature=0,
+                response_format=response_format,
+                strict_response_format=True,
+                return_exceptions=True,
+            )
+
+            for idx, result in zip(batch_pending_indices, results):
+                if isinstance(result, Exception):
+                    logging.warning("LLM call failed for prompt %d: %s", idx, result)
+                    failed_indices.append(idx)
+                else:
+                    outputs[idx] = result
+
+        pending_indices = failed_indices
+
+        if pending_indices and attempt < num_retries:
+            logging.info(
+                "Retrying %d failed prompts in %d seconds...",
+                len(pending_indices),
+                retry_delay_seconds,
+            )
+            await asyncio.sleep(retry_delay_seconds)
+
+    if pending_indices:
+        raise RuntimeError(
+            f"LLM calls failed for {len(pending_indices)} prompts after "
+            f"{num_retries + 1} attempts: indices {pending_indices}"
         )
-        for result in results:
-            if isinstance(result, Exception):
-                logging.warning("LLM call failed, dropping response: %s", result)
-                outputs.append(None)
-            else:
-                outputs.append(result)
+
     return outputs

@@ -303,6 +303,8 @@ def extract_features_by_llm_grouped(
     max_new_tokens=5000,
     max_section_length: int = None,
     sentence_column: str = "sentence",
+    num_retries: int = 2,
+    retry_delay_seconds: int = 60,
 ) -> dict[str, np.ndarray]:
     """Synchronous wrapper; use the _async variant from inside a running event loop."""
     return asyncio.run(
@@ -318,6 +320,8 @@ def extract_features_by_llm_grouped(
             max_new_tokens=max_new_tokens,
             max_section_length=max_section_length,
             sentence_column=sentence_column,
+            num_retries=num_retries,
+            retry_delay_seconds=retry_delay_seconds,
         )
     )
 
@@ -334,6 +338,8 @@ async def extract_features_by_llm_grouped_async(
     max_new_tokens=5000,
     max_section_length: int = None,
     sentence_column: str = "sentence",
+    num_retries: int = 2,
+    retry_delay_seconds: int = 60,
 ) -> dict[str, np.ndarray]:
     prior_concepts = set(all_extracted_features_dict.keys())
     logging.info(f"all_extracted_features_dict {prior_concepts}")
@@ -381,6 +387,8 @@ async def extract_features_by_llm_grouped_async(
             batch_size=batch_size,
             max_new_tokens=max_new_tokens,
             desc="concept extraction",
+            num_retries=num_retries,
+            retry_delay_seconds=retry_delay_seconds,
         )
 
         # extract responses
