@@ -35,6 +35,8 @@ class LLMConfig:
     max_new_tokens: int = 5000
     cache_file: str = "cache_v1api.db"
     batch_size: int = 20
+    num_retries: int = 2
+    retry_delay_seconds: int = 60
 
 
 @dataclass
