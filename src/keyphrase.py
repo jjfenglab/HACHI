@@ -72,7 +72,12 @@ class Keyphrase:
         # Extract keyphrases
         prompt_template = self._load_and_prepare_prompt()
         prompts = self._build_prompts(data_df, train_idxs, prompt_template)
-        llm_outputs = self._get_llm_outputs(prompts)
+        image_paths = (
+            data_df.iloc[train_idxs][self.config.text_column].astype(str).tolist()
+            if self.config.is_image
+            else None
+        )
+        llm_outputs = self._get_llm_outputs(prompts, image_paths)
         llm_output_strs = self._format_outputs(llm_outputs)
         
         # Update DataFrame
@@ -117,11 +122,6 @@ class Keyphrase:
     
     def _initialize_llm(self) -> None:
         """Initialize LLM API with caching"""
-        if self.config.is_image:
-            raise NotImplementedError(
-                "image extraction dropped in llm-api v1 migration"
-            )
-
         load_dotenv()
         self.llm = create_llm_clients(
             LLMConfig(
@@ -160,16 +160,23 @@ class Keyphrase:
             )
 
         sentences = subset_df[self.config.text_column].to_numpy()
-        prompts = [
-            prompt_template.replace(self.config.prompt_placeholder, str(s))
-            for s in sentences
-        ]
+        if self.config.is_image:
+            # image mode: text_column holds image paths; the template is sent
+            # verbatim and each image rides along as a content part
+            prompts = [prompt_template] * len(sentences)
+        else:
+            prompts = [
+                prompt_template.replace(self.config.prompt_placeholder, str(s))
+                for s in sentences
+            ]
         self.logger.info(
             f"Built {len(prompts)} prompts from column '{self.config.text_column}'"
         )
         return prompts
 
-    def _get_llm_outputs(self, prompts: List[str]) -> List[Any]:
+    def _get_llm_outputs(
+        self, prompts: List[str], image_paths: List[str] | None = None
+    ) -> List[Any]:
         """Get outputs from LLM API"""
         self.logger.info(
             f"Processing {len(prompts)} examples with "
@@ -185,6 +192,7 @@ class Keyphrase:
                 batch_size=self.config.batch_size,
                 max_new_tokens=self.config.num_new_tokens,
                 desc="keyphrase extraction",
+                image_paths=image_paths,
             )
         )
     
