@@ -16,6 +16,7 @@ from lab_llm import (
     CompletionFunction,
     ErrorTracker,
     LLMApi,
+    ResponseFormatError,
     wrap_completion_function,
 )
 from lab_llm.versa import make_versa_claude_completion, make_versa_openai_completion
@@ -109,8 +110,10 @@ async def run_prompts_batched(
     max_new_tokens: int,
     desc: str = "LLM batches",
     image_paths: Optional[List[str]] = None,
+    retry_prompts: Optional[List[str]] = None,
     num_retries: int = 0,
     retry_delay_seconds: int = 60,
+    temperature_eps: float = 1,
     error_if_missing: bool = False,
 ) -> List[Any]:
     """
@@ -120,6 +123,9 @@ async def run_prompts_batched(
     its prompt as a base64 content part. Failed prompts are retried up to num_retries
     times with retry_delay_seconds between attempts; prompts still failing are None,
     or raise RuntimeError when error_if_missing is set.
+
+    If retry_prompts is given (same length as prompts), those prompts are used on
+    retry attempts (attempt > 0) instead of the original prompts.
     """
     import asyncio
 
@@ -133,6 +139,17 @@ async def run_prompts_batched(
         for i, prompt in enumerate(prompts)
     ]
 
+    retry_messages_list = None
+    if retry_prompts:
+        assert len(retry_prompts) == len(prompts)
+        retry_messages_list = [
+            [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _user_content(prompt, image_paths[i] if image_paths else None)},
+            ]
+            for i, prompt in enumerate(retry_prompts)
+        ]
+
     outputs = [None] * len(prompts)
     pending_indices = list(range(len(prompts)))
 
@@ -140,7 +157,8 @@ async def run_prompts_batched(
         if not pending_indices:
             break
 
-        pending_messages = [messages_list[i] for i in pending_indices]
+        active_messages = retry_messages_list if (attempt > 0 and retry_messages_list) else messages_list
+        pending_messages = [active_messages[i] for i in pending_indices]
         failed_indices = []
 
         for batch_start in tqdm(
@@ -154,7 +172,7 @@ async def run_prompts_batched(
                 batch_messages,
                 max_parallel_jobs=batch_size,
                 max_tokens=max_new_tokens,
-                temperature=0,
+                temperature=(0 if attempt == 0 else 2),
                 response_format=response_format,
                 strict_response_format=True,
                 return_exceptions=True,
@@ -163,6 +181,8 @@ async def run_prompts_batched(
             for idx, result in zip(batch_pending_indices, results):
                 if isinstance(result, Exception):
                     logging.warning("LLM call failed for prompt %d: %s", idx, result)
+                    if isinstance(result, ResponseFormatError):
+                        logging.warning("Full LLM output for prompt %d:\n%s", idx, result.raw_content)
                     failed_indices.append(idx)
                 else:
                     outputs[idx] = result

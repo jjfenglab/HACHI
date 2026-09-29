@@ -70,14 +70,19 @@ class Keyphrase:
         
 
         # Extract keyphrases
-        prompt_template = self._load_and_prepare_prompt()
+        prompt_template, retry_prompt_template = self._load_and_prepare_prompt()
         prompts = self._build_prompts(data_df, train_idxs, prompt_template)
+        retry_prompts = (
+            self._build_prompts(data_df, train_idxs, retry_prompt_template)
+            if retry_prompt_template
+            else None
+        )
         image_paths = (
             data_df.iloc[train_idxs][self.config.text_column].astype(str).tolist()
             if self.config.is_image
             else None
         )
-        llm_outputs = self._get_llm_outputs(prompts, image_paths)
+        llm_outputs = self._get_llm_outputs(prompts, image_paths, retry_prompts)
         llm_output_strs = self._format_outputs(llm_outputs)
         
         # Update DataFrame
@@ -132,18 +137,27 @@ class Keyphrase:
         )["extraction"]
         self.logger.info(f"Initialized LLM: {self.config.llm_model_type}")
     
-    def _load_and_prepare_prompt(self) -> str:
-        """Load prompt template from file"""
+    def _load_and_prepare_prompt(self) -> tuple[str, str | None]:
+        """Load prompt template and optional retry prompt template from files"""
         prompt_path = Path(self.config.prompt_file)
         if not prompt_path.exists():
             raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
-        
+
         with open(prompt_path, "r") as f:
             prompt_template = f.read()
-        
+
         self.logger.info(f"Loaded prompt template from {prompt_path}")
-        
-        return prompt_template
+
+        retry_prompt_template = None
+        retry_prompt_file = getattr(self.config, "retry_prompt_file", None)
+        if retry_prompt_file:
+            retry_path = Path(retry_prompt_file)
+            if retry_path.exists():
+                with open(retry_path, "r") as f:
+                    retry_prompt_template = f.read()
+                self.logger.info(f"Loaded retry prompt template from {retry_path}")
+
+        return prompt_template, retry_prompt_template
     
     def _build_prompts(
         self,
@@ -175,7 +189,10 @@ class Keyphrase:
         return prompts
 
     def _get_llm_outputs(
-        self, prompts: List[str], image_paths: List[str] | None = None
+        self,
+        prompts: List[str],
+        image_paths: List[str] | None = None,
+        retry_prompts: List[str] | None = None,
     ) -> List[Any]:
         """Get outputs from LLM API"""
         self.logger.info(
@@ -193,6 +210,10 @@ class Keyphrase:
                 max_new_tokens=self.config.num_new_tokens,
                 desc="keyphrase extraction",
                 image_paths=image_paths,
+                retry_prompts=retry_prompts,
+                num_retries=self.config.num_retries,
+                retry_delay_seconds=self.config.retry_delay_seconds,
+                error_if_missing=False,
             )
         )
     

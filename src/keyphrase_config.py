@@ -12,7 +12,7 @@ import yaml
 @dataclass
 class KeyphraseConfig:
     """Configuration for keyphrase extraction
-    
+
     This configuration can be loaded from YAML files or created from argparse.
     All file paths are converted to absolute paths automatically.
     """
@@ -28,6 +28,9 @@ class KeyphraseConfig:
     index_col: Optional[int]
     llm_outputs_file: Optional[str]
     log_file: str
+    num_retries: int = 0
+    retry_delay_seconds: int = 60
+    retry_prompt_file: Optional[str] = None
     
     def __post_init__(self) -> None:
         """Validate and normalize configuration after initialization"""
