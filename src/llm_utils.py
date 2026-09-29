@@ -113,7 +113,7 @@ async def run_prompts_batched(
     retry_prompts: Optional[List[str]] = None,
     num_retries: int = 0,
     retry_delay_seconds: int = 60,
-    temperature_eps: float = 1,
+    temperature_retry: float = 1,
     error_if_missing: bool = False,
 ) -> List[Any]:
     """
@@ -172,7 +172,7 @@ async def run_prompts_batched(
                 batch_messages,
                 max_parallel_jobs=batch_size,
                 max_tokens=max_new_tokens,
-                temperature=(0 if attempt == 0 else 2),
+                temperature=(0 if attempt == 0 else temperature_retry),
                 response_format=response_format,
                 strict_response_format=True,
                 return_exceptions=True,
