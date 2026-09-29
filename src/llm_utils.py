@@ -113,7 +113,7 @@ async def run_prompts_batched(
     retry_prompts: Optional[List[str]] = None,
     num_retries: int = 0,
     retry_delay_seconds: int = 60,
-    temperature_retry: float = 1,
+    temperature_retry: float = 2,
     error_if_missing: bool = False,
 ) -> List[Any]:
     """
